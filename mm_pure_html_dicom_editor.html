@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Pure HTML DICOM Editor</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+    </style>
+    <script type="text/javascript" src="https://unpkg.com/dcmjs"></script>
+    <script>
+    function dom_hide_children( elem )
+    {
+        for (let i = elem.children.length - 1; i >= 0; i--) 
+            elem.children[i].style.display = "none";
+    }
+    class PureHtmlDicomEditor
+    {
+        constructor()
+        {
+            this._files = [];
+            this._datasets = [];
+        }
+        on_files_selected(files)
+        {
+            document.getElementById("file_paths").innerHTML = "";
+            for(var i = 0; i < files.length; ++i)
+            {
+                //$("#files_dropdown_items").append('<a class="dropdown-item" href="#" onclick="load_and_display(this);" data-index="'+i.toString()+'">'+this.files.item(i).webkitRelativePath+'</a>');
+                this._files.push(files.item(i));
+                document.getElementById("file_paths").innerHTML += "<option value='"+i.toString()+"'>"+files.item(i).webkitRelativePath+"</option>";
+
+                //console.log( this.files.item(i).webkitRelativePath );
+                let reader = new FileReader();
+                reader.onload = () => {
+                    let DicomDict = dcmjs.data.DicomMessage.readFile(reader.result);
+                    const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(DicomDict.dict);
+                    //console.log( dataset.PatientName );
+                    this._datasets.push(dataset);
+                };
+                reader.onerror = () => { console.log(reader.error); };
+                reader.readAsArrayBuffer( files.item(i) );
+            }
+            //if( selected_files.length > 0 )
+                //$("#files_selector").show();
+        }
+        on_file_selected( index )
+        {
+            var dataset = this._datasets[index];
+            document.getElementById("dicom_tags_rows").innerHTML = "";
+            var name_filter = document.getElementById("name_filter").value.toLowerCase();
+            var value_filter = document.getElementById("value_filter").value.toLowerCase();
+            for (var key in dataset)
+            {
+                var value = dataset[key];
+                if(typeof dataset[key] == "string" && ( name_filter == "" || key.toString().toLowerCase().startsWith(name_filter) ) && ( value_filter == "" || value.toString().toLowerCase().startsWith(value_filter) ) )
+                    document.getElementById("dicom_tags_rows").innerHTML += "<tr><td>"+key.toString()+"</td><td>"+dataset[key].toString()+"</td></tr>";
+            }
+
+        }
+    }
+    var pure_html_dicom_editor = null;
+    document.addEventListener("DOMContentLoaded", function(event)
+    {
+        pure_html_dicom_editor = new PureHtmlDicomEditor();
+    });
+
+    </script>
+  </head>
+  <body style="margin: 0; padding: 0;">
+    <div id="files_source_area" style="background-color: rgb(128, 128, 128); border-radius: calc(12px + 1vw + 1vh); padding: calc(12px + 1vw + 1vh);" >
+        <h1>The pure HTML DICOM File Editor</h1>
+        <p>Select the files source:</p>
+        <p>
+        <select onchange="dom_hide_children( document.getElementById('files_source') ); document.getElementById(this.value).style.display = 'block';">
+            <option value="files_source_directory">Directory</option>
+            <option value="files_source_file">Single File</option>
+        <!-- <option value="files_source_url">Url</option> -->
+        </select>
+        </p>
+        <p id="files_source">
+            <input id='files_source_directory' type='file' webkitdirectory mozdirectory onchange="pure_html_dicom_editor.on_files_selected(this.files);" />
+            <input id='files_source_file' type='file' style="display: none;" onchange="pure_html_dicom_editor.on_files_selected(this.files);" />
+            <input id='files_source_url' type='url' style="display: none;" />
+        </p>
+        <hr>
+        <p>Select the files to process:</p>
+        <select id="file_paths" name="file_paths" size="5" onchange="pure_html_dicom_editor.on_file_selected(parseInt(this.value));">
+
+        </select>   
+        <hr />
+        <p>Edit Tags:</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Value</th>
+                </tr>
+                <tr>
+                    <td><input id="name_filter" onchange="pure_html_dicom_editor.on_file_selected(document.getElementById('file_paths').value);" /></td>
+                    <td><input id="value_filter" onchange="pure_html_dicom_editor.on_file_selected(document.getElementById('file_paths').value);" /></td>
+                </tr>
+            </thead>
+            <tbody id="dicom_tags_rows">
+
+            </tbody>
+        </table>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+
+              /*
+              var selected_files = null;
+
+              function load_and_display(elem)
+              {
+                  console.log(selected_files[ parseInt(elem.getAttribute("data-index")) ].webkitRelativePath);
+              }
+
+              document.addEventListener("DOMContentLoaded", function(event)
+              {
+                  //window.document.addEventListener('wound_detection_event', handleEvent, false);
+              });
+
+              $(document).ready(function() {
+                  $( "#input_dir" ).change(function(e)
+                  {
+                      // this.files.forEach(function (file) {
+                      //     // Do whatever you want to do with the file
+                      //     console.log(file);
+                      // });
+                      selected_files = this.files;
+
+                      for(var i=0; i<this.files.length; ++i)
+                      {
+                          $("#files_dropdown_items").append('<a class="dropdown-item" href="#" onclick="load_and_display(this);" data-index="'+i.toString()+'">'+this.files.item(i).webkitRelativePath+'</a>');
+
+                          //console.log( this.files.item(i).webkitRelativePath );
+                          // let reader = new FileReader();
+                          // reader.onload = () => {
+                          //     let DicomDict = dcmjs.data.DicomMessage.readFile(reader.result);
+                          //     const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(DicomDict.dict);
+                          //     console.log( dataset.PatientName );
+                          // };
+                          // reader.onerror = () => { console.log(reader.error); };
+                          // reader.readAsArrayBuffer( this.files.item(i) );
+
+                      }
+                      if( selected_files.length > 0 )
+                          $("#files_selector").show();
+                  });
+              });*/
+    </script>
+  </body>
+</html>
