@@ -77,7 +77,7 @@
         }
         #right_col
         {
-            flex: 3;
+            flex: 1;
         }
         .box
         {      
@@ -85,8 +85,12 @@
             margin-top: var(--xxl_space);
             border: #35383F solid var(--border_size);
             border-radius: var(--l_space);
-            background: rgb(49,54,60);
             background: linear-gradient(90deg, rgba(49,54,60,1) 0%, rgba(49,54,59,1) 27%, rgba(49,54,59,1) 52%, rgba(46,51,55,1) 100%);
+    
+            /* for "disabled" effect */
+            pointer-events: none;
+            opacity: 0.5;
+            background: #000;
         }
         .box > :first-child
         {            
@@ -101,13 +105,11 @@
         {
             padding: var(--xxl_space);
         }
-        .box_disabled
+        .box_enabled
         {
-            pointer-events: none;
-    
-          /* for "disabled" effect */
-            opacity: 0.5;
-            background: #000;
+            pointer-events: auto;
+            opacity: 1;
+            background: rgb(49,54,60);
         }
         .small
         {
@@ -128,13 +130,13 @@
 
   <body>   
 
-    <div id="loader_overlay" data-bind-display="loading">
+    <div id="loader_overlay" data-bind-display="loading" data-display-flex>
         Loading ... 
     </div>
     
     <div id="left_col">
 
-        <div id="headline" class="box">
+        <div id="headline" class="box box_enabled">
             <p>Pure HTML Dicom Editor</p>
             <div>
                 <p>Easy DICOM File manipulation just by using HTML5 technology.</p>
@@ -143,7 +145,7 @@
             </div>
         </div>
 
-        <div id="files_source" class="box">
+        <div id="files_source" class="box box_enabled">
             <p>Source directory</p>
             <div>
                 <p>Please select the directory containing your DICOM files. Only DICOM files will be collected.</p>
@@ -152,14 +154,14 @@
             </div>
         </div>
 
-        <div id="selected_files" class="box" data-bind-toggle-css-class="no_files_selected" data-css-class="box_disabled">
+        <div id="selected_files" class="box" data-bind-css-class="files" data-css-class="box_enabled">
             <p>File selection</p>
             <div>                    
                 <p data-bind-display="no_files_selected">Currently no source directory selected.</p>
-                <p data-bind-display="files_selected_but_no_dicom_files">The source directory does not contain any DICOM files.</p>
+                <p data-bind-display="dicom_files" data-bind-display-invert>The source directory does not contain any DICOM files.</p>
                 <p data-bind-display="dicom_files">
                     <select name="selected_dicom_files" size="8" multiple data-bind-value data-bind-object="dicom_files" style="width: 100%;">
-                        <option value="$key$">$value$</option>
+                        <option value="$key$" data-bind-html="dicom_files.$key$"></option>
                     </select>
                 </p>
             </div>            
@@ -169,10 +171,10 @@
     
     <div id="right_col">   
         
-        <div id="files_source" class="box box_disabled" data-bind-toggle-css-class="curr_dicom_dataset_is_null" data-css-class="box_disabled">
+        <div class="box" data-bind-css-class="curr_dicom_dataset" data-css-class="box_enabled">
             <p>DICOM Tag Editor</p>
             <div>
-                <p data-bind-display="curr_dicom_dataset_is_null">No file selected.</p>
+                <p data-bind-display="curr_dicom_dataset" data-bind-display-invert>No file selected.</p>
                 <div data-bind-object="curr_dicom_dataset" data-bind-display="curr_dicom_dataset">
                     <p><b>$key$:</b>&nbsp;$value$</p>
                 </div>
@@ -191,6 +193,7 @@
             // inputs
             this._data = {};
             this._changes = {};
+            this._active_element = null;
         }
 
         init()
@@ -216,58 +219,90 @@
                         }
                         else
                             value = event.target.value;
-                        
-                        this._set( elem.getAttribute("name"), value );
-                        this._commit();
+                        this._active_element = elem;
+                        this.set( elem.getAttribute("name"), value );
+                        this._active_element = null;
                     }
                     
                 }.bind(this));
 
-                this._set( "files", null );
-                this._set( "loading", false );
-                this._commit();
-
+                // init the data
+                this.update( { "files": null, "loading": false } );
             }.bind(this));
         }
 
-        _set( key, value )
+        update( changes )
         {
-            this._changes[key] = value;
-            return this;
+            let prev_values = {};
+            this.apply( changes, this._data, prev_values );
+            this._changed( changes, prev_values )
         }
-
-        _commit()
+        set( path, value )
         {
-            for( let key in this._changes )
+            let keys = String(path).split(".");
+            let changes = {};
+            let curr_object = changes;
+            while( keys.length > 0 )
             {
-                this._data[key] = this._changes[key];                
-            }            
-            let changes = this._changes;//Object.assign( {}, this._changes );
-            this._changes = {};            
-            this._changed(changes);
-            return this;
+                let key = keys.shift();
+                if( keys.length == 0 )
+                    curr_object[key] = value;
+                else
+                {
+                    curr_object[key] = {};
+                    curr_object = curr_object[key];
+                }
+            }
+            return this.update( changes );
+        }
+        apply( changes, target, prev_values )
+        {
+            for(let key in changes)
+            {
+                prev_values[key] = key in target ? target[key] : null;
+                
+                if( changes[key] != null && typeof changes[key] == "object" )
+                {                    
+                    if( Array.isArray( changes[key] ) && ( !(key in target) || Array.isArray( target[key] == false ) ) )
+                        target[key] = [];
+                    else if( !(key in target) || typeof target[key] != "object" )
+                        target[key] = {};
+                    this.apply( changes[key], target[key] );
+                }
+                else
+                    target[key] = changes[key];
+            }
         }
 
-        _changed( changes )
+        get( path )
+        {
+            let keys = String(path).split(".");
+            let curr_object = this._data;
+            while( keys.length > 0 )
+            {
+                let key = keys.shift();
+                if( typeof curr_object != "object" || !( key in curr_object ) )
+                    return null;
+                curr_object = curr_object[key];
+            }
+            return curr_object;
+        }
+
+        _changed( changes, prev_values )
         {                   
             // PROPAGATE CHANGES               
             if( "files" in changes )
             {
                 let files = changes["files"];
-                // vars to produce
-                let no_files_selected = true;
-                let files_selected_but_no_dicom_files = false;
-                let dicom_files = null;
-                let dicom_datasets = null;
+                this.update({ "selected_dicom_files": null})
                 
                 if( files instanceof FileList )
                 {
-                    no_files_selected = false;
-                    dicom_files = [];
-                    dicom_datasets = [];
-                    var files_processed = 0;
+                    let dicom_files = [];
+                    let dicom_datasets = [];
+                    let files_processed = 0;
                     // Start loading file
-                    this._set( "loading", true )._commit();
+                    this.update( { "loading": true } );
                     for(var i = 0; i < files.length; ++i)
                     {            
                         let reader = new FileReader();
@@ -277,7 +312,13 @@
                             try 
                             {                            
                                 let DicomDict = dcmjs.data.DicomMessage.readFile(reader.result);
-                                const dicom_dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(DicomDict.dict);
+                                let dicom_dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(DicomDict.dict);
+                                for(let key of Object.keys(dicom_dataset))
+                                {
+                                    // do not show object tags
+                                    if( typeof dicom_dataset[key] == "object#" )
+                                        delete dicom_dataset[key];
+                                }
                                 dicom_datasets.push(dicom_dataset);
                                 dicom_files.push(readerEvt.target.webkitRelativePath);
                             } 
@@ -292,13 +333,9 @@
                             files_processed++; 
                             if(files_processed == files.length)
                             {
-                                this._set( "no_files_selected", false );
-                                this._set( "files_selected_but_no_dicom_files", dicom_files.length == 0 );
-                                this._set( "dicom_files", dicom_files );
-                                this._set( "dicom_datasets", dicom_datasets );
-                                this._set( "loading", false );                                
-                                this._set( "selected_dicom_files", null );
-                                this._commit();
+                                this.update( { "dicom_files": dicom_files,
+                                    "dicom_datasets": dicom_datasets,
+                                    "loading": false } );                 
                             }
                         };
                         reader.webkitRelativePath = file.webkitRelativePath;
@@ -307,12 +344,9 @@
                 }
                 else
                 {
-                    this._set( "no_files_selected", true );
-                    this._set( "files_selected_but_no_dicom_files", false );
-                    this._set( "dicom_files", null );
-                    this._set( "dicom_datasets", null );              
-                    this._set( "selected_dicom_files", null );
-                    this._commit();
+                    this.update( { "dicom_files": null,
+                        "dicom_datasets": null,
+                        "loading": false } );       
                 }
                 
             }
@@ -321,13 +355,23 @@
                 let selected_dicom_files = changes["selected_dicom_files"];
                 if( selected_dicom_files == null || selected_dicom_files.length == 0)
                 {
-                    this._set( "curr_dicom_dataset", null )._commit();
+                    this.update( { "curr_dicom_dataset": null } );
                 }
                 else
                 {
-                    let curr_dicom_dataset = this._data.dicom_datasets[ selected_dicom_files[0] ];
-                    this._set( "curr_dicom_dataset", curr_dicom_dataset );
-                    this._commit();
+                    let curr_dicom_dataset = {};
+                    for( let selected_dcm_file_idx of selected_dicom_files )
+                    {
+                        let file_dicom_dataset = this._data.dicom_datasets[ selected_dcm_file_idx ];
+                        for( let tag_name in file_dicom_dataset )
+                        {
+                            if( !(tag_name in curr_dicom_dataset ) )
+                                curr_dicom_dataset[tag_name] = file_dicom_dataset[tag_name];
+                            else if( curr_dicom_dataset[tag_name] != file_dicom_dataset[tag_name] )
+                                delete curr_dicom_dataset[tag_name]; 
+                        }
+                    }
+                    this.update( { "curr_dicom_dataset": curr_dicom_dataset } );
                 }
             }
             else if( "curr_dicom_dataset" in changes )
@@ -335,76 +379,84 @@
                 let curr_dicom_dataset = changes["curr_dicom_dataset"];
                 if( curr_dicom_dataset == null )
                 {
-                    this._set( "curr_dicom_dataset_is_null", true )._commit();
                 }
                 else
                 {
-                    this._set( "curr_dicom_dataset_is_null", false )._commit();
                 }
             }
                 
             // DOM changes
-            for(let key in changes )
-            {
-                this._update_dom( key, changes[key] );
-            }
+            this._update_dom_recursive( changes, prev_values );
+            
         }
 
-        _update_dom( key, value )
+        _update_dom_recursive( changes, prev_values, parent_path=null )
         {
-            // get the value
-            let bool_value = Boolean(value);
-            if( Array.isArray(value) && value.length == 0 )
-                bool_value = false;
+            for( let key in changes )
+            {
+                let value = changes[key];
+                // get the value
+                let bool_value = Boolean(value);
+                let str_value = value == null ? "" : String(value);
+                if( Array.isArray(value) && value.length == 0 )
+                    bool_value = false;
 
-            document.querySelectorAll(`[data-bind-html="${key}"]`).forEach(function(elem) 
-            {
-                elem.innerHTML = String(value);                 
-            }.bind(this));
-
-            document.querySelectorAll(`[data-bind-display="${key}"]`).forEach(function(elem) 
-            {
-                bool_value = "bindDisplayInvert" in elem.dataset ? ! bool_value : bool_value;
-                let display_type = "displayFlex" in elem.dataset ? "flex" : "block";
-                elem.style.display = bool_value ? display_type : "none";                        
-            }.bind(this));
-
-            document.querySelectorAll(`[data-bind-toggle-css-class="${key}"]`).forEach(function(elem) 
-            {
-                let cssClass = elem.dataset.cssClass;
-                if( bool_value )
-                    elem.classList.add(cssClass);              
-                else
-                    elem.classList.remove(cssClass);
-            }.bind(this));
-            
-            if( value != null && typeof value == "object" )
-            {
-                document.querySelectorAll(`[data-bind-object="${key}"]`).forEach(function(elem) 
+                document.querySelectorAll(`[data-bind-exist="${key}"]`).forEach(function(elem) 
                 {
-                    let first_child = elem.children[0];
-                    first_child.style.display = "none";
-                    let first_child_html = new XMLSerializer().serializeToString(first_child);
-                    
-                    elem.innerHTML = first_child_html;
-                    for( let sub_key in value )
+                    if( bool_value == false )
+                        elem.remove();           
+                }.bind(this));
+
+                document.querySelectorAll(`[name="${key}"][data-bind-value]`).forEach(function(elem) 
+                {
+                    if( elem != this._active_element && ( elem.getAttribute("type") != "file" || str_value == "") )
+                        elem.value = str_value;    
+                }.bind(this));
+
+                document.querySelectorAll(`[data-bind-html="${key}"]`).forEach(function(elem) 
+                {
+                    elem.innerHTML = str_value;    
+                    if( "htmlSuffix" in elem.dataset )
+                        elem.innerHTML += elem.dataset.htmlSuffix;             
+                }.bind(this));
+
+                document.querySelectorAll(`[data-bind-display="${key}"]`).forEach(function(elem) 
+                {
+                    bool_value = "bindDisplayInvert" in elem.dataset ? ! bool_value : bool_value;
+                    let display_type = "displayFlex" in elem.dataset ? "flex" : "block";
+                    elem.style.display = bool_value ? display_type : "none";                        
+                }.bind(this));
+
+                document.querySelectorAll(`[data-bind-css-class="${key}"]`).forEach(function(elem) 
+                {
+                    let cssClass = elem.dataset.cssClass;
+                    if( bool_value )
+                        elem.classList.add(cssClass);              
+                    else
+                        elem.classList.remove(cssClass);
+                }.bind(this));
+                
+                if( value != null && typeof value == "object" )
+                {
+                    document.querySelectorAll(`[data-bind-object="${key}"]`).forEach(function(elem) 
                     {
-                        let sub_value = value[sub_key];
-                        let item_elem_html = first_child_html.replaceAll('$key$', sub_key);
-                        if( typeof sub_value == "object")
+                        let first_child = elem.children[0];
+                        first_child.style.display = "none";
+                        let first_child_html = new XMLSerializer().serializeToString(first_child);
+                        
+                        elem.innerHTML = first_child_html;
+                        for( let sub_key in value )
                         {
-                            for(let sub_sub_key in sub_value)
-                            {
-                                let sub_sub_value = sub_value[sub_sub_key];
-                                item_elem_html = item_elem_html.replaceAll('$'+sub_sub_key+'$', sub_sub_value == null ? "" : String(sub_sub_value));
-                            }
+                            let item_elem_html = first_child_html.replaceAll('$key$', sub_key);
+                            item_elem_html = item_elem_html.replaceAll('display: none;', "");
+                            item_elem_html = item_elem_html.replaceAll(' style=""', "");
+                            elem.innerHTML += item_elem_html;
                         }
-                        item_elem_html = item_elem_html.replaceAll('$value$', sub_value == null ? "" : String(sub_value));
-                        item_elem_html = item_elem_html.replaceAll('display: none;', "");
-                        item_elem_html = item_elem_html.replaceAll(' style=""', "");
-                        elem.innerHTML += item_elem_html;
-                    }
-                }.bind(this));  
+                    }.bind(this));  
+                    // recursive call
+                    let curr_path = (parent_path ? parent_path + "." : "" ) + key;
+                    this._update_dom_recursive( value, prev_values[key], curr_path );
+                }
             }
         }
     }
