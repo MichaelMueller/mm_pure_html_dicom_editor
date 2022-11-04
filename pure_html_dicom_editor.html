@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Pure HTML DICOM Editor</title>
+    <style>
+        :root
+        {
+            --normal_font: 16px;   
+            --small_font: 10px;    
+            --xxl_space: 24px;  
+            --xl_space: 12px;  
+            --l_space: 9px;  
+            --m_space: 4px;
+            --border_size: 1px;
+            --icon_height: 48px;
+            --font: "Trebuchet MS", Arial Black, serif;
+        }
+        @media screen and (min-width: 1280px) 
+        {
+            :root
+            {   
+                --normal_font: 24px;   
+                --small_font: 15px;  
+                --xxl_space: 36px;  
+                --xl_space: 18px;  
+                --l_space: 12px;  
+                --m_space: 6px;
+                --border_size: 2px;
+                --icon_height: 64px;
+            }
+        }
+        
+        *
+        {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;       
+        }
+        body
+        {
+            /* Permalink - use to edit and share this gradient: https://colorzilla.com/gradient-editor/#242527+0,282b33+50,26272b+71,26272b+88,25262a+100 */
+            background: #242527; /* Old browsers */
+            background: -moz-linear-gradient(left, #242527 0%, #282b33 50%, #26272b 71%, #26272b 88%, #25262a 100%); /* FF3.6-15 */
+            background: -webkit-linear-gradient(left, #242527 0%,#282b33 50%,#26272b 71%,#26272b 88%,#25262a 100%); /* Chrome10-25,Safari5.1-6 */
+            background: linear-gradient(to right, #242527 0%,#282b33 50%,#26272b 71%,#26272b 88%,#25262a 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+
+            font-size: var(--normal_font);
+            font-family: var(--font);
+            background-color: rgb(38, 38, 38);
+            color: white;
+            display: flex;
+            justify-content: center;     
+            margin-right: var(--xxl_space);
+            margin-bottom: var(--xxl_space);
+        }
+        #loader_overlay
+        {
+            z-index: 1000;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.65);
+        }
+        #left_col
+        {
+            flex: 1;
+        }
+        #right_col
+        {
+            flex: 3;
+        }
+        .box
+        {      
+            margin-left: var(--xxl_space);
+            margin-top: var(--xxl_space);
+            border: #35383F solid var(--border_size);
+            border-radius: var(--l_space);
+            background: rgb(49,54,60);
+            background: linear-gradient(90deg, rgba(49,54,60,1) 0%, rgba(49,54,59,1) 27%, rgba(49,54,59,1) 52%, rgba(46,51,55,1) 100%);
+        }
+        .box > :first-child
+        {            
+            font-weight: bold;
+            border-radius: var(--l_space) var(--l_space) 0 0;
+            padding: var(--xxl_space);
+            text-transform: uppercase;
+            background: rgb(4,109,182);
+            background: linear-gradient(90deg, rgba(4,109,182,1) 0%, rgba(7,123,198,1) 33%, rgba(12,147,226,1) 66%, rgba(16,166,250,1) 100%);
+        }
+        .box > :nth-child(2)
+        {
+            padding: var(--xxl_space);
+        }
+        .box_disabled
+        {
+            pointer-events: none;
+    
+          /* for "disabled" effect */
+            opacity: 0.5;
+            background: #000;
+        }
+        .small
+        {
+            font-size: var(--small_font);
+        }
+        input[type=text], input[type='password'], input[type='file'], select
+        {
+            font-size: var(--normal_font);
+            font-family: var(--font);
+            background-color: rgb(49,54,60);
+            color: white;
+            border-radius: var(--m_space);
+            padding: var(--m_space);
+            border: var(--border_size) solid #444444;
+        }
+    </style>
+  </head>
+
+  <body>   
+
+    <div id="loader_overlay" data-bind-display="loading">
+        Loading ... 
+    </div>
+    
+    <div id="left_col">
+
+        <div id="headline" class="box">
+            <p>Pure HTML Dicom Editor</p>
+            <div>
+                <p>Easy DICOM File manipulation just by using HTML5 technology.</p>
+                <p>&nbsp;</p>
+                <p class="small">(c) Dr. Michael Müller, 2022, michaelmuelleronline[at]gmx.de</p>
+            </div>
+        </div>
+
+        <div id="files_source" class="box">
+            <p>Source directory</p>
+            <div>
+                <p>Please select the directory containing your DICOM files. Only DICOM files will be collected.</p>
+                <p>&nbsp;</p>
+                <p><input type="file" webkitdirectory mozdirectory directory data-bind-value name="files" /></p>       
+            </div>
+        </div>
+
+        <div id="selected_files" class="box" data-bind-toggle-css-class="no_files_selected" data-css-class="box_disabled">
+            <p>File selection</p>
+            <div>                    
+                <p data-bind-display="no_files_selected">Currently no source directory selected.</p>
+                <p data-bind-display="files_selected_but_no_dicom_files">The source directory does not contain any DICOM files.</p>
+                <p data-bind-display="dicom_files">
+                    <select name="selected_dicom_files" size="8" multiple data-bind-value data-bind-object="dicom_files" style="width: 100%;">
+                        <option value="$key$">$value$</option>
+                    </select>
+                </p>
+            </div>            
+        </div>
+
+    </div>      
+    
+    <div id="right_col">   
+        
+        <div id="files_source" class="box box_disabled" data-bind-toggle-css-class="curr_dicom_dataset_is_null" data-css-class="box_disabled">
+            <p>DICOM Tag Editor</p>
+            <div>
+                <p data-bind-display="curr_dicom_dataset_is_null">No file selected.</p>
+                <div data-bind-object="curr_dicom_dataset" data-bind-display="curr_dicom_dataset">
+                    <p><b>$key$:</b>&nbsp;$value$</p>
+                </div>
+            </div>            
+        </div>
+        
+    </div>
+
+    <!-- javascript -->
+    <script src="https://cdn.jsdelivr.net/npm/dcmjs@0.28.0/build/dcmjs.min.js"></script>
+    <script>
+    class PureHtmlDicomEditorApp
+    {
+        constructor()
+        {
+            // inputs
+            this._data = {};
+            this._changes = {};
+        }
+
+        init()
+        {            
+            document.addEventListener("DOMContentLoaded", function(event) 
+            {                 
+                document.addEventListener("change", function(event) 
+                { 
+                    let elem = event.target;
+                    if( "bindValue" in elem.dataset )
+                    {
+                        let value = null;
+                        if( elem.tagName.toLowerCase() == "input" && elem.getAttribute("type").toLowerCase() == "file" )                        
+                            value = event.target.files;
+                        else if("options" in event.target)
+                        {
+                            const selectedValues = [];
+
+                            for (let i = 0; i < event.target.options.length; i++)                             
+                                if (event.target.options[i].selected)                                 
+                                    selectedValues.push(event.target.options[i].value);
+                            value = selectedValues;
+                        }
+                        else
+                            value = event.target.value;
+                        
+                        this._set( elem.getAttribute("name"), value );
+                        this._commit();
+                    }
+                    
+                }.bind(this));
+
+                this._set( "files", null );
+                this._set( "loading", false );
+                this._commit();
+
+            }.bind(this));
+        }
+
+        _set( key, value )
+        {
+            this._changes[key] = value;
+            return this;
+        }
+
+        _commit()
+        {
+            for( let key in this._changes )
+            {
+                this._data[key] = this._changes[key];                
+            }            
+            let changes = this._changes;//Object.assign( {}, this._changes );
+            this._changes = {};            
+            this._changed(changes);
+            return this;
+        }
+
+        _changed( changes )
+        {                   
+            // PROPAGATE CHANGES               
+            if( "files" in changes )
+            {
+                let files = changes["files"];
+                // vars to produce
+                let no_files_selected = true;
+                let files_selected_but_no_dicom_files = false;
+                let dicom_files = null;
+                let dicom_datasets = null;
+                
+                if( files instanceof FileList )
+                {
+                    no_files_selected = false;
+                    dicom_files = [];
+                    dicom_datasets = [];
+                    var files_processed = 0;
+                    // Start loading file
+                    this._set( "loading", true )._commit();
+                    for(var i = 0; i < files.length; ++i)
+                    {            
+                        let reader = new FileReader();
+                        var file = files.item(i);
+                        reader.onload = (readerEvt) => 
+                        {
+                            try 
+                            {                            
+                                let DicomDict = dcmjs.data.DicomMessage.readFile(reader.result);
+                                const dicom_dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(DicomDict.dict);
+                                dicom_datasets.push(dicom_dataset);
+                                dicom_files.push(readerEvt.target.webkitRelativePath);
+                            } 
+                            catch (error) 
+                            {
+                                console.log( error.toString() );
+                            }
+                        };
+                        reader.onerror = () => { console.error(reader.error); };
+                        reader.onloadend = () => 
+                        { 
+                            files_processed++; 
+                            if(files_processed == files.length)
+                            {
+                                this._set( "no_files_selected", false );
+                                this._set( "files_selected_but_no_dicom_files", dicom_files.length == 0 );
+                                this._set( "dicom_files", dicom_files );
+                                this._set( "dicom_datasets", dicom_datasets );
+                                this._set( "loading", false );                                
+                                this._set( "selected_dicom_files", null );
+                                this._commit();
+                            }
+                        };
+                        reader.webkitRelativePath = file.webkitRelativePath;
+                        reader.readAsArrayBuffer( file );
+                    }                    
+                }
+                else
+                {
+                    this._set( "no_files_selected", true );
+                    this._set( "files_selected_but_no_dicom_files", false );
+                    this._set( "dicom_files", null );
+                    this._set( "dicom_datasets", null );              
+                    this._set( "selected_dicom_files", null );
+                    this._commit();
+                }
+                
+            }
+            else if( "selected_dicom_files" in changes )
+            {                
+                let selected_dicom_files = changes["selected_dicom_files"];
+                if( selected_dicom_files == null || selected_dicom_files.length == 0)
+                {
+                    this._set( "curr_dicom_dataset", null )._commit();
+                }
+                else
+                {
+                    let curr_dicom_dataset = this._data.dicom_datasets[ selected_dicom_files[0] ];
+                    this._set( "curr_dicom_dataset", curr_dicom_dataset );
+                    this._commit();
+                }
+            }
+            else if( "curr_dicom_dataset" in changes )
+            {
+                let curr_dicom_dataset = changes["curr_dicom_dataset"];
+                if( curr_dicom_dataset == null )
+                {
+                    this._set( "curr_dicom_dataset_is_null", true )._commit();
+                }
+                else
+                {
+                    this._set( "curr_dicom_dataset_is_null", false )._commit();
+                }
+            }
+                
+            // DOM changes
+            for(let key in changes )
+            {
+                this._update_dom( key, changes[key] );
+            }
+        }
+
+        _update_dom( key, value )
+        {
+            // get the value
+            let bool_value = Boolean(value);
+            if( Array.isArray(value) && value.length == 0 )
+                bool_value = false;
+
+            document.querySelectorAll(`[data-bind-html="${key}"]`).forEach(function(elem) 
+            {
+                elem.innerHTML = String(value);                 
+            }.bind(this));
+
+            document.querySelectorAll(`[data-bind-display="${key}"]`).forEach(function(elem) 
+            {
+                bool_value = "bindDisplayInvert" in elem.dataset ? ! bool_value : bool_value;
+                let display_type = "displayFlex" in elem.dataset ? "flex" : "block";
+                elem.style.display = bool_value ? display_type : "none";                        
+            }.bind(this));
+
+            document.querySelectorAll(`[data-bind-toggle-css-class="${key}"]`).forEach(function(elem) 
+            {
+                let cssClass = elem.dataset.cssClass;
+                if( bool_value )
+                    elem.classList.add(cssClass);              
+                else
+                    elem.classList.remove(cssClass);
+            }.bind(this));
+            
+            if( value != null && typeof value == "object" )
+            {
+                document.querySelectorAll(`[data-bind-object="${key}"]`).forEach(function(elem) 
+                {
+                    let first_child = elem.children[0];
+                    first_child.style.display = "none";
+                    let first_child_html = new XMLSerializer().serializeToString(first_child);
+                    
+                    elem.innerHTML = first_child_html;
+                    for( let sub_key in value )
+                    {
+                        let sub_value = value[sub_key];
+                        let item_elem_html = first_child_html.replaceAll('$key$', sub_key);
+                        if( typeof sub_value == "object")
+                        {
+                            for(let sub_sub_key in sub_value)
+                            {
+                                let sub_sub_value = sub_value[sub_sub_key];
+                                item_elem_html = item_elem_html.replaceAll('$'+sub_sub_key+'$', sub_sub_value == null ? "" : String(sub_sub_value));
+                            }
+                        }
+                        item_elem_html = item_elem_html.replaceAll('$value$', sub_value == null ? "" : String(sub_value));
+                        item_elem_html = item_elem_html.replaceAll('display: none;', "");
+                        item_elem_html = item_elem_html.replaceAll(' style=""', "");
+                        elem.innerHTML += item_elem_html;
+                    }
+                }.bind(this));  
+            }
+        }
+    }
+    var pure_html_dicom_editor_app = new PureHtmlDicomEditorApp();
+    pure_html_dicom_editor_app.init();
+    </script>
+
+  </body>
+
+</html>
