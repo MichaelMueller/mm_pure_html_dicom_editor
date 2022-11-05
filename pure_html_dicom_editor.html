@@ -157,8 +157,8 @@
         <div id="selected_files" class="box" data-bind-css-class="files" data-css-class="box_enabled">
             <p>File selection</p>
             <div>                    
-                <p data-bind-display="no_files_selected">Currently no source directory selected.</p>
-                <p data-bind-display="dicom_files" data-bind-display-invert>The source directory does not contain any DICOM files.</p>
+                <p data-bind-display="files" data-bind-display-invert="">Currently no source directory selected.</p>
+                <p data-bind-display="files"><span data-bind-display="dicom_files" data-bind-display-invert="">The source directory does not contain any DICOM files.</span></p>
                 <p data-bind-display="dicom_files">
                     <select name="selected_dicom_files" size="8" multiple data-bind-value data-bind-object="dicom_files" style="width: 100%;">
                         <option value="$key$" data-bind-html="dicom_files.$key$"></option>
@@ -259,18 +259,20 @@
         {
             for(let key in changes)
             {
-                prev_values[key] = key in target ? target[key] : null;
-                
                 if( changes[key] != null && typeof changes[key] == "object" )
                 {                    
-                    if( Array.isArray( changes[key] ) && ( !(key in target) || Array.isArray( target[key] == false ) ) )
-                        target[key] = [];
-                    else if( !(key in target) || typeof target[key] != "object" )
+                    if( Array.isArray( changes[key] ) && ( !(key in target) || Array.isArray( target[key] == false ) ) )                    
+                        target[key] = [];                    
+                    else if( typeof target[key] != "object" || !(key in target) )
                         target[key] = {};
-                    this.apply( changes[key], target[key] );
+                    prev_values[key] = Array.isArray( changes[key] ) ? [] : {};
+                    this.apply( changes[key], target[key], prev_values );
                 }
                 else
+                {                        
+                    prev_values[key] = key in target ? target[key] : null;
                     target[key] = changes[key];
+                }
             }
         }
 
@@ -294,7 +296,6 @@
             if( "files" in changes )
             {
                 let files = changes["files"];
-                this.update({ "selected_dicom_files": null})
                 
                 if( files instanceof FileList )
                 {
@@ -350,6 +351,10 @@
                 }
                 
             }
+            else if( "dicom_files" in changes || "dicom_datasets" in changes )
+            {
+                this.update({ "selected_dicom_files": null})
+            }
             else if( "selected_dicom_files" in changes )
             {                
                 let selected_dicom_files = changes["selected_dicom_files"];
@@ -396,50 +401,68 @@
             {
                 let value = changes[key];
                 // get the value
-                let bool_value = Boolean(value);
+                let bool_value = value == null ? false : Boolean(value);
                 let str_value = value == null ? "" : String(value);
                 if( Array.isArray(value) && value.length == 0 )
                     bool_value = false;
 
-                document.querySelectorAll(`[data-bind-exist="${key}"]`).forEach(function(elem) 
+                let elements = document.querySelectorAll(`[data-bind-exist="${key}"]`);
+                for( let i=0; i < elements.length; ++ i)
                 {
+                    let elem = elements.item(i);
                     if( bool_value == false )
                         elem.remove();           
-                }.bind(this));
+                }
 
-                document.querySelectorAll(`[name="${key}"][data-bind-value]`).forEach(function(elem) 
+                elements = document.querySelectorAll(`[name="${key}"][data-bind-value]`);
+                for( let i=0; i < elements.length; ++ i)
                 {
+                    let elem = elements.item(i);
                     if( elem != this._active_element && ( elem.getAttribute("type") != "file" || str_value == "") )
                         elem.value = str_value;    
-                }.bind(this));
+                }
 
-                document.querySelectorAll(`[data-bind-html="${key}"]`).forEach(function(elem) 
+                elements = document.querySelectorAll(`[data-bind-html="${key}"]`);
+                for( let i=0; i < elements.length; ++ i)
                 {
+                    let elem = elements.item(i);
                     elem.innerHTML = str_value;    
                     if( "htmlSuffix" in elem.dataset )
                         elem.innerHTML += elem.dataset.htmlSuffix;             
-                }.bind(this));
+                }
 
-                document.querySelectorAll(`[data-bind-display="${key}"]`).forEach(function(elem) 
+                elements = document.querySelectorAll(`[data-bind-display="${key}"]`);
+                for( let i=0; i < elements.length; ++ i)
                 {
-                    bool_value = "bindDisplayInvert" in elem.dataset ? ! bool_value : bool_value;
+                    let elem = elements.item(i);
                     let display_type = "displayFlex" in elem.dataset ? "flex" : "block";
-                    elem.style.display = bool_value ? display_type : "none";                        
-                }.bind(this));
+                    elem.style.display = ("bindDisplayInvert" in elem.dataset ? ! bool_value : bool_value) ? display_type : "none";                        
+                }
 
-                document.querySelectorAll(`[data-bind-css-class="${key}"]`).forEach(function(elem) 
+                elements = document.querySelectorAll(`[data-bind-visibility="${key}"]`);
+                for( let i=0; i < elements.length; ++ i)
                 {
+                    let elem = elements.item(i);
+                    elem.style.visibility = ("bindVisibilityInvert" in elem.dataset ? ! bool_value : bool_value) ? "visible" : "hidden";                        
+                }
+
+                elements = document.querySelectorAll(`[data-bind-css-class="${key}"]`);
+                for( let i=0; i < elements.length; ++ i)
+                {
+                    let elem = elements.item(i);
                     let cssClass = elem.dataset.cssClass;
                     if( bool_value )
                         elem.classList.add(cssClass);              
                     else
                         elem.classList.remove(cssClass);
-                }.bind(this));
+                }
                 
                 if( value != null && typeof value == "object" )
-                {
-                    document.querySelectorAll(`[data-bind-object="${key}"]`).forEach(function(elem) 
+                {                        
+                    elements = document.querySelectorAll(`[data-bind-object="${key}"]`);
+                    for( let i=0; i < elements.length; ++ i)
                     {
+                        let elem = elements.item(i);
                         let first_child = elem.children[0];
                         first_child.style.display = "none";
                         let first_child_html = new XMLSerializer().serializeToString(first_child);
@@ -452,7 +475,7 @@
                             item_elem_html = item_elem_html.replaceAll(' style=""', "");
                             elem.innerHTML += item_elem_html;
                         }
-                    }.bind(this));  
+                    }  
                     // recursive call
                     let curr_path = (parent_path ? parent_path + "." : "" ) + key;
                     this._update_dom_recursive( value, prev_values[key], curr_path );
