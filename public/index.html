@@ -142,51 +142,52 @@
         Loading ... 
     </div>
     
-    <div id="base_container">
-        <div id="base_inner_container">
+    <div id="left_col">
 
-            <div id="headline" class="box box_enabled">
-                <p>Pure HTML Dicom Editor</p>
-                <div>
-                    <p>Easy DICOM File manipulation just by using HTML5 technology.</p>
-                    <p>&nbsp;</p>
-                    <p class="small">(c) Dr. Michael Müller, 2022, michaelmuelleronline[at]gmx.de</p>
-                </div>
+        <div id="headline" class="box box_enabled">
+            <p>Pure HTML Dicom Editor</p>
+            <div>
+                <p>Easy DICOM File manipulation just by using HTML5 technology.</p>
+                <p>&nbsp;</p>
+                <p class="small">(c) Dr. Michael Müller, 2022, michaelmuelleronline[at]gmx.de</p>
             </div>
-
-            <div id="files_source" class="box box_enabled">
-                <p>Source directory</p>
-                <div>
-                    <p>Please select the directory containing your DICOM files. Only DICOM files will be collected.</p>
-                    <p>&nbsp;</p>
-                    <p><input type="file" webkitdirectory mozdirectory directory data-bind-value name="files" /></p>       
-                </div>
-            </div>
-
-            <div id="selected_files" class="box" data-bind-css-class="files" data-css-class="box_enabled">
-                <p>File selection</p>
-                <div>                    
-                    <p data-bind-display="files" data-bind-display-invert="">Currently no source directory selected.</p>
-                    <p data-bind-display="files"><span data-bind-display="dicom_files" data-bind-display-invert="">The source directory does not contain any DICOM files.</span></p>
-                    <p data-bind-display="dicom_files">
-                        <select name="selected_dicom_files" size="8" multiple data-bind-value data-bind-object="dicom_files" style="width: 100%;">
-                            <option value="$key$" data-bind-html="dicom_files.$key$"></option>
-                        </select>
-                    </p>
-                </div>            
-            </div>      
-                
-            <div class="box" data-bind-css-class="curr_dicom_dataset" data-css-class="box_enabled">
-                <p>DICOM Tag Editor</p>
-                <div>
-                    <p data-bind-display="curr_dicom_dataset" data-bind-display-invert>No file selected.</p>
-                    <div data-bind-object="curr_dicom_dataset" data-bind-display="curr_dicom_dataset">
-                        <p><b>$key$:</b>&nbsp;$value$</p>
-                    </div>
-                </div>            
-            </div>
-                
         </div>
+
+        <div id="files_source" class="box box_enabled">
+            <p>Source directory</p>
+            <div>
+                <p>Please select the directory containing your DICOM files. Only DICOM files will be collected.</p>
+                <p>&nbsp;</p>
+                <p><input type="file" webkitdirectory mozdirectory directory data-bind-value name="files" /></p>       
+            </div>
+        </div>
+
+        <div id="selected_files" class="box" data-bind-css-class="files" data-css-class="box_enabled">
+            <p>File selection</p>
+            <div>                    
+                <p data-bind-display="files" data-bind-display-invert="">Currently no source directory selected.</p>
+                <p data-bind-display="files"><span data-bind-display="dicom_files" data-bind-display-invert="">The source directory does not contain any DICOM files.</span></p>
+                <p data-bind-display="dicom_files">
+                    <select name="selected_dicom_files" size="8" multiple data-bind-value data-bind-object="dicom_files" style="width: 100%;">
+                        <option value="$key$" data-bind-html="dicom_files.$key$"></option>
+                    </select>
+                </p>
+            </div>            
+        </div>           
+    </div>      
+            
+    <div id="right_col">
+        
+        <div class="box" data-bind-css-class="curr_dicom_dataset" data-css-class="box_enabled">
+            <p>DICOM Tag Editor</p>
+            <div>
+                <p data-bind-display="curr_dicom_dataset" data-bind-display-invert>No file selected.</p>
+                <div data-bind-object="curr_dicom_dataset" data-bind-display="curr_dicom_dataset">
+                    <p><b>$key$:</b>&nbsp;$value$</p>
+                </div>
+            </div>            
+        </div>
+            
     </div>
 
     <!-- javascript -->

@@ -12,6 +12,22 @@ class Node
         /// @var object
         ///
         this._data = {};
+        ///
+        /// @var map<string, function<<mixed>, mixed>
+        ///
+        this._update_filter_callbacks = {};
+        ///
+        /// @var map<string, function<<mixed, mixed>, null|string>
+        ///
+        this._update_callbacks = {};
+        ///
+        /// @var map<string, function<<mixed, mixed>, null|string>
+        ///
+        this._get_callbacks = {};
+        ///
+        /// @var map<string, function<<mixed>, mixed>
+        ///
+        this._get_filter_callbacks = {};
     }
     ///        
     /// @param object changes
@@ -19,7 +35,8 @@ class Node
     ///  
     update( changes ) 
     {
-        Node.assert( typeof changes == "object", `expected typeof 'changes' == "object", got ${String(changes)}:${typeof changes}`);
+        if( typeof changes != "object" )
+            changes = [changes];
         return this._update( changes, true );
     }
     ///        
@@ -28,7 +45,8 @@ class Node
     ///  
     get( path )
     {
-        if( this._on_access(path) == false )
+        let _on_get_callback = this._get_callback
+        if( error )
             return null;
 
         let keys = String(path).split(".");
@@ -151,23 +169,28 @@ class Node
         }
     }
     ///        
-    /// @param string path
-    /// @param mixed value
+    /// @param string path_expression
+    /// @param string type one of "update_filter", "update", "get", "get_filter"
     /// @return mixed
     ///  
-    _filter( path, value ) { return value; }
-    ///        
-    /// @param string path
-    /// @param mixed value
-    /// @param mixed curr_value
-    /// @return null|string description of the expected value
-    ///  
-    _validate( path, value, curr_value ) { return null; }
-    ///
-    /// @param string path
-    /// @return bool
-    ///  
-    _on_access( path ) { return true; }
+    _callback_for( path_expression, type ) 
+    { 
+        let filter_var_name = "_" + type + "_callbacks";
+        if( path_expression in this[filter_var_name] )
+            return this[filter_var_name][path_expression];
+        else
+        {
+            let last_dot_pos = path_expression.lastIndexOf(".");
+            let wildcard_path = null;
+            if( last_dot_pos == -1 )
+                wildcard_path = "*";
+            else
+                wildcard_path = path_expression.substring(0, last_dot_pos)+".*";
+            if( wildcard_path in this[filter_var_name] ) 
+                return this[filter_var_name][wildcard_path];
+        }
+        return null; 
+    }
     ///
     /// @param object changes
     /// @param object prev_value
