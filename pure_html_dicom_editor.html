@@ -46,15 +46,9 @@
             background: -moz-linear-gradient(left, #242527 0%, #282b33 50%, #26272b 71%, #26272b 88%, #25262a 100%); /* FF3.6-15 */
             background: -webkit-linear-gradient(left, #242527 0%,#282b33 50%,#26272b 71%,#26272b 88%,#25262a 100%); /* Chrome10-25,Safari5.1-6 */
             background: linear-gradient(to right, #242527 0%,#282b33 50%,#26272b 71%,#26272b 88%,#25262a 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-
             font-size: var(--normal_font);
             font-family: var(--font);
-            background-color: rgb(38, 38, 38);
             color: white;
-            display: flex;
-            justify-content: center;     
-            margin-right: var(--xxl_space);
-            margin-bottom: var(--xxl_space);
         }
         #loader_overlay
         {
@@ -89,7 +83,7 @@
     
             /* for "disabled" effect */
             pointer-events: none;
-            opacity: 0.5;
+            opacity: 0.7;
             background: #000;
         }
         .box > :first-child
@@ -125,6 +119,20 @@
             padding: var(--m_space);
             border: var(--border_size) solid #444444;
         }
+        #base_container
+        {
+            background-image: url("dicom.jpg");
+        }
+        #base_inner_container
+        {
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex; 
+            flex-direction: column;
+            padding-bottom: var(--xxl_space);
+            padding-right: var(--xxl_space);
+            min-height: 100vh;
+            width: 100%;
+        }
     </style>
   </head>
 
@@ -134,58 +142,234 @@
         Loading ... 
     </div>
     
-    <div id="left_col">
+    <div id="base_container">
+        <div id="base_inner_container">
 
-        <div id="headline" class="box box_enabled">
-            <p>Pure HTML Dicom Editor</p>
-            <div>
-                <p>Easy DICOM File manipulation just by using HTML5 technology.</p>
-                <p>&nbsp;</p>
-                <p class="small">(c) Dr. Michael Müller, 2022, michaelmuelleronline[at]gmx.de</p>
-            </div>
-        </div>
-
-        <div id="files_source" class="box box_enabled">
-            <p>Source directory</p>
-            <div>
-                <p>Please select the directory containing your DICOM files. Only DICOM files will be collected.</p>
-                <p>&nbsp;</p>
-                <p><input type="file" webkitdirectory mozdirectory directory data-bind-value name="files" /></p>       
-            </div>
-        </div>
-
-        <div id="selected_files" class="box" data-bind-css-class="files" data-css-class="box_enabled">
-            <p>File selection</p>
-            <div>                    
-                <p data-bind-display="files" data-bind-display-invert="">Currently no source directory selected.</p>
-                <p data-bind-display="files"><span data-bind-display="dicom_files" data-bind-display-invert="">The source directory does not contain any DICOM files.</span></p>
-                <p data-bind-display="dicom_files">
-                    <select name="selected_dicom_files" size="8" multiple data-bind-value data-bind-object="dicom_files" style="width: 100%;">
-                        <option value="$key$" data-bind-html="dicom_files.$key$"></option>
-                    </select>
-                </p>
-            </div>            
-        </div>
-
-    </div>      
-    
-    <div id="right_col">   
-        
-        <div class="box" data-bind-css-class="curr_dicom_dataset" data-css-class="box_enabled">
-            <p>DICOM Tag Editor</p>
-            <div>
-                <p data-bind-display="curr_dicom_dataset" data-bind-display-invert>No file selected.</p>
-                <div data-bind-object="curr_dicom_dataset" data-bind-display="curr_dicom_dataset">
-                    <p><b>$key$:</b>&nbsp;$value$</p>
+            <div id="headline" class="box box_enabled">
+                <p>Pure HTML Dicom Editor</p>
+                <div>
+                    <p>Easy DICOM File manipulation just by using HTML5 technology.</p>
+                    <p>&nbsp;</p>
+                    <p class="small">(c) Dr. Michael Müller, 2022, michaelmuelleronline[at]gmx.de</p>
                 </div>
-            </div>            
+            </div>
+
+            <div id="files_source" class="box box_enabled">
+                <p>Source directory</p>
+                <div>
+                    <p>Please select the directory containing your DICOM files. Only DICOM files will be collected.</p>
+                    <p>&nbsp;</p>
+                    <p><input type="file" webkitdirectory mozdirectory directory data-bind-value name="files" /></p>       
+                </div>
+            </div>
+
+            <div id="selected_files" class="box" data-bind-css-class="files" data-css-class="box_enabled">
+                <p>File selection</p>
+                <div>                    
+                    <p data-bind-display="files" data-bind-display-invert="">Currently no source directory selected.</p>
+                    <p data-bind-display="files"><span data-bind-display="dicom_files" data-bind-display-invert="">The source directory does not contain any DICOM files.</span></p>
+                    <p data-bind-display="dicom_files">
+                        <select name="selected_dicom_files" size="8" multiple data-bind-value data-bind-object="dicom_files" style="width: 100%;">
+                            <option value="$key$" data-bind-html="dicom_files.$key$"></option>
+                        </select>
+                    </p>
+                </div>            
+            </div>      
+                
+            <div class="box" data-bind-css-class="curr_dicom_dataset" data-css-class="box_enabled">
+                <p>DICOM Tag Editor</p>
+                <div>
+                    <p data-bind-display="curr_dicom_dataset" data-bind-display-invert>No file selected.</p>
+                    <div data-bind-object="curr_dicom_dataset" data-bind-display="curr_dicom_dataset">
+                        <p><b>$key$:</b>&nbsp;$value$</p>
+                    </div>
+                </div>            
+            </div>
+                
         </div>
-        
     </div>
 
     <!-- javascript -->
     <script src="https://cdn.jsdelivr.net/npm/dcmjs@0.28.0/build/dcmjs.min.js"></script>
     <script>
+    ///
+    /// Basic building block of applications 
+    ///  
+    class Node
+    {
+        ///
+        /// @return this
+        ///  
+        constructor()
+        {
+            ///
+            /// @var object
+            ///
+            this._data = {};
+        }
+        ///        
+        /// @param object changes
+        /// @return this
+        ///  
+        update( changes ) 
+        {
+            Node.assert( typeof changes == "object", `expected typeof 'changes' == "object", got ${String(changes)}:${typeof changes}`);
+            return this._update( changes, true );
+        }
+        ///        
+        /// @param string path
+        /// @return mixed|null
+        ///  
+        get( path )
+        {
+            let error = this._on_access(path);
+            if( error != null )
+            {
+                this._update( {"errors": null}, false );
+                this._update( {"errors": {[path]: error}}, false );
+                return null;
+            }
+
+            let keys = String(path).split(".");
+            let curr_object = this._data;
+            while( keys.length > 0 )
+            {
+                let key = keys.shift();
+                if( typeof curr_object != "object" || !( key in curr_object ) )
+                    return null;
+                curr_object = curr_object[key];
+            }
+            return curr_object;
+        }
+        ///        
+        /// @param string path
+        /// @param mixed value
+        /// @return this
+        ///  
+        set( path, value )
+        {
+            let keys = String(path).split(".");
+            let last_key = keys.pop();
+            let changes = {};
+            let curr_object = changes;
+            while( keys.length > 0 )
+            {
+                let key = keys.shift();
+                if( keys.length == 0 )
+                    curr_object[key] = value;
+                else
+                {
+                    curr_object[key] = {};
+                    curr_object = curr_object[key];
+                }
+            }
+            return this.update( changes );
+        }
+        ///        
+        /// @param object changes
+        /// @param bool validate
+        /// @return this
+        ///  
+        _update( changes, validate=false ) 
+        {
+            let prev_values = {};
+            let errors = {};
+
+            // reset errors
+            if( validate )
+                this._update( {"errors": null}, false );
+
+            this._recursive_update( changes, validate, this._data, prev_values, errors, null );
+
+            // set errors
+            if( Object.keys(errors).length > 0 )
+                this._update( {"errors": errors} );
+            
+            if( Object.keys(changes).length > 0 )
+                this._on_updated( changes, prev_values );
+        }
+        ///        
+        /// @param object changes
+        /// @param bool validate
+        /// @param object target
+        /// @param object prev_values
+        /// @param object errors
+        /// @param string|null parent_path
+        /// @return this
+        ///  
+        _recursive_update( changes, validate, target, prev_values, errors, parent_path=null ) 
+        {
+            let keys = Object.keys(changes);
+            for( let key of keys )
+            {
+                let curr_path = ( parent_path ? parent_path + "." : "" ) + String(key);
+                // use filter here
+                let value = this._filter( curr_path, changes[key] );
+                let curr_value = key in target ? target[key] : null;
+                // check if we need validation
+                if( validate )
+                {
+                    let expected_value = this._validate( curr_path, value, curr_value );
+                    if( expected_value !== null )
+                    {
+                        errors[curr_path] = expected_value;
+                        delete changes[key];
+                        continue;
+                    }
+                }
+                // TODO recursiveness
+                if( typeof value == "object" )
+                {
+
+                }
+                else
+                {
+                    // validation passed apply the value
+                    target[key] = changes[key];
+                    prev_values[key] = changes[key];
+                }
+            }
+        }
+        ///        
+        /// @param string path
+        /// @param mixed value
+        /// @return mixed
+        ///  
+        _filter( path, value ) { return value; }
+        ///        
+        /// @param string path
+        /// @param mixed value
+        /// @param mixed curr_value
+        /// @return null|string description of the expected value
+        ///  
+        _validate( path, value, curr_value ) { return null; }
+        ///
+        /// @param string path
+        /// @return string|null
+        ///  
+        _on_access( path ) { return null; }
+        ///
+        /// @param object changes
+        /// @param object prev_value
+        /// @return void
+        ///  
+        _on_updated( changes, prev_values ) {}
+        ///
+        /// @param bool condition
+        /// @param string error_message
+        /// @return bool
+        ///  
+        static assert( condition, error_message )
+        {
+            if( Boolean(condition) === false )
+            {
+                console.error( String(error_message) );
+                return false;
+            }
+            return true;
+        }
+    }
+
     class PureHtmlDicomEditorApp
     {
         constructor()
@@ -259,6 +443,8 @@
         {
             for(let key in changes)
             {
+                prev_values[key] = typeof target == "object" && key in target ? target[key] : null;
+
                 if( changes[key] != null && typeof changes[key] == "object" )
                 {                    
                     if( Array.isArray( changes[key] ) && ( !(key in target) || Array.isArray( target[key] == false ) ) )                    
@@ -268,14 +454,14 @@
                     prev_values[key] = Array.isArray( changes[key] ) ? [] : {};
                     this.apply( changes[key], target[key], prev_values );
                 }
-                else
-                {                        
-                    prev_values[key] = key in target ? target[key] : null;
+                else     
                     target[key] = changes[key];
-                }
+                
             }
         }
 
+
+        
         get( path )
         {
             let keys = String(path).split(".");

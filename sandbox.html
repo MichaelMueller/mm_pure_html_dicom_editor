@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>Sandbox</title>
+  </head>
+  <body>
+    <script src="app.js"></script>
+    <script>
+
+    class TestNode extends Node
+    {
+        constructor()
+        {
+            super();
+            this._update( { "restricted": 5 } );
+        }
+        ///        
+        /// @param string path
+        /// @param mixed value
+        /// @return mixed
+        ///  
+        _filter( path, value ) 
+        {
+            if( path == "test" )
+                return typeof value == "string" && value == "false" ? false : Boolean(value); 
+            return value; 
+        }
+        ///        
+        /// @param string path
+        /// @param mixed value
+        /// @param mixed curr_value
+        /// @return null|string description of the expected value
+        ///  
+        _validate( path, value, curr_value ) 
+        { 
+            if( path == "test" )
+                return typeof value == "boolean" ?  null : `Expected bool, got "[${typeof value} ${String(value)}], current value: ${String(curr_value)}`
+            else if( path == "test_int" )
+                return typeof value == "integer" ?  null : `Expected integer, got "[${typeof value} ${String(value)}], current value: ${String(curr_value)}`
+            return null; 
+        }
+        ///
+        /// @param string path
+        /// @return string|null
+        ///  
+        _on_access( path ) { 
+            if( path == "restricted" )
+                return false;
+            return true;
+        }
+        ///
+        /// @param object changes
+        /// @param object prev_value
+        /// @return void
+        ///  
+        _on_updated( changes, prev_values ) {
+            for( let key in changes )
+            {
+                document.getElementById("console").innerHTML += `changed: '${key}'=${JSON.stringify( changes[key] )}, previous_value=${JSON.stringify( prev_values[key] )}\n`
+
+            }
+        }
+
+    }
+
+    
+    document.addEventListener("DOMContentLoaded", function(event) 
+    {                 
+        let test_node = new TestNode();
+        test_node.update( { "test": "false" } );
+        test_node.update( { "test_int": "false" } );
+        test_node.update( { "test_int": {"blaa":1} } );
+    });
+    </script>
+
+<pre id="console">
+
+</pre>
+  </body>
+</html>
