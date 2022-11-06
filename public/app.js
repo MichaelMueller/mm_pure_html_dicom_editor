@@ -75,6 +75,7 @@ class Node
     ///  
     _set( path, value, validate=false )
     {
+        
         let keys = String(path).split(".");
         let changes = {};
         let curr_object = changes;
