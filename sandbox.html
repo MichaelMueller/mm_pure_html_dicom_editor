@@ -28,8 +28,8 @@
         /// @return void
         ///  
         _filter_on_update( path, value ) { 
-            if( path.match(/^[^.]*.population$/) )
-                return parseFloat(value) + 0.1;
+            if( path.match(/\/population$/) )
+                return parseFloat(value);
             //document.getElementById("console").innerHTML += `<p>_filter_on_update: path='${path}', value='${String( value )}'</p>`
             return value; }
         ///
@@ -38,8 +38,8 @@
         /// @return void
         ///  
         _filter_on_get( path, value ) {
-            if( path.match(/^[^.]*.population$/) )
-                return Math.round(value - 1.1);
+            if( path.match(/\/population$/) )
+                return Math.round(value);
             //document.getElementById("console").innerHTML += `<p>_filter_on_get: path='${path}', value='${String( value )}'</p>`
             return value; }
         ///
@@ -49,7 +49,7 @@
         ///  
         _is_valid( path, updated_value, curr_value ) 
         {             
-            if( curr_value != null && path.match(/^[^.]*.name/) )
+            if( curr_value != null && path.endsWith("name") )
             {
                 console.error(path+" is immutable");
                 return false;
@@ -73,33 +73,84 @@
     {                 
         let countries_databse = new CountriesDatabase();
         countries_databse.update({
-            "de":
+            "countries":
             {
-                "name": "Federal Republic of Germany",
-                "population": 82,
-            },
-            "usa":
-            {
-                "name": "United States of America",
-                "population": 350,
-            },
-            "uk":
-            {
-                "name": "United Kingdom",
-                "population": 76,
+                "de":
+                {
+                    "name": "Federal Republic of Germany",
+                    "population": 82,
+                },
+                "usa":
+                {
+                    "name": "United States of America",
+                    "population": 350,
+                },
+                "uk":
+                {
+                    "name": "United Kingdom",
+                    "population": 76,
+                }
             }
         });
-        countries_databse.update({"uk": { "population": 66 }})
-        countries_databse.set("usa.population", 356);
-        document.getElementById("console").innerHTML += `<p>usa.population='${countries_databse.get("usa.population")}'</p>`
+        countries_databse.update({"countries": {"uk": { "population": 66 }}});
+        countries_databse.set("/countries/usa/population", 356);
+        document.getElementById("console").innerHTML += `<p>/countries/usa/population='${countries_databse.get("/countries/usa/population")}'</p>`
+        document.getElementById("console").innerHTML += `<p>/='${countries_databse.get("/")}'</p>`
         
-        countries_databse.update({"uk": { "name": "gambia" }})
+        countries_databse.update({"countries": {"uk": { "name": "gambia" }}});
         
     });
     </script>
-
-<pre id="console">
-
-</pre>
+    <div id="console"></div>
+    <script>
+        
+    ///
+    /// Test App
+    ///
+    class CountriesDatabaseHtmlApp extends HtmlApp
+    {
+        constructor()
+        {
+            super();
+        }
+    }
+            let countries_db_html_app = new CountriesDatabaseHtmlApp();
+        countries_db_html_app.update({
+            "countries":
+            {
+                "de":
+                {
+                    "name": "Federal Republic of Germany",
+                    "population": 82,
+                },
+                "usa":
+                {
+                    "name": "United States of America",
+                    "population": 350,
+                },
+                "uk":
+                {
+                    "name": "United Kingdom",
+                    "population": 76,
+                }
+            }
+        });
+    </script>
+    <table style="width: 100%;">
+        <thead>
+            <tr>
+                <th>id</th>
+                <th>name</th>
+                <th>population</th>
+            </tr>
+        </thead>
+        <tbody data-bind-object="/countries">
+            <tr>
+                 <td>$key$</td>
+                 <td data-bind-html="/countries/$key$/name"></td>
+                 <td data-bind-html="/countries/$key$/population"></td>
+            </tr>
+        </tbody>
+    </table>
   </body>
 </html>
