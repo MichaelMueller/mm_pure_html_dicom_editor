@@ -305,6 +305,8 @@ class HtmlApp extends App
             let str_value = value == null ? "" : String(value);
             if( Array.isArray(value) && value.length == 0 )
                 bool_value = false;
+            else if( value != null && typeof value == "object" && Object.keys(value).length == 0 )
+                bool_value = false;
 
             let elements = null;
             // bind whole object to elements
@@ -328,6 +330,8 @@ class HtmlApp extends App
                     elem.innerHTML = first_child_html;
                     for( let key in child_object )
                     {
+                        if( child_object[key] == null )
+                            continue;
                         let item_elem_html = first_child_html.replaceAll('$key$', key);
                         item_elem_html = item_elem_html.replaceAll('display: none;', "");
                         item_elem_html = item_elem_html.replaceAll(' style=""', "");

@@ -202,7 +202,7 @@
                         <option value="$key$" data-bind-html="dicom_files/$key$"></option>
                     </select>
                 </p>
-                <div data-bind-display="curr_dicom_dataset">
+                <div data-bind-display="selected_dicom_files">
                     <p>Tag filter:</p>
                     <p><input type="text" name="tag_filter" data-bind-value style="width: 100%;"></p>
                 </div>
@@ -215,7 +215,7 @@
         <div class="box" data-bind-css-class="curr_dicom_dataset" data-css-class="box_enabled">
             <div>DICOM Tag Editor</div>
             <div>
-                <p data-bind-display="curr_dicom_dataset" data-bind-display-invert>No file selected.</p>
+                <p data-bind-display="curr_dicom_dataset" data-bind-display-invert>No file selected or all tags filtered.</p>
                 <div data-bind-display="curr_dicom_dataset">
                     <table>
                         <thead>
@@ -302,10 +302,10 @@
         ///  
         _filter_curr_dicom_dataset()
         {            
-            this.update( { "curr_dicom_dataset": null } );
             let selected_dicom_files = this.get("selected_dicom_files");
             if( selected_dicom_files == null || selected_dicom_files.length == 0)
             {
+                this.update( { "curr_dicom_dataset": null } );
                 return;
             }
             let curr_dicom_dataset = {};
@@ -318,7 +318,7 @@
                     if( !(tag_name in curr_dicom_dataset ) )
                         curr_dicom_dataset[tag_name] = file_dicom_dataset[tag_name];
                     else if( curr_dicom_dataset[tag_name] != file_dicom_dataset[tag_name] )
-                        delete curr_dicom_dataset[tag_name]; 
+                        curr_dicom_dataset[tag_name] = null; 
                 }
             }
             let tag_filter = this.get("tag_filter");
@@ -327,12 +327,20 @@
             {
                 // do not show object tags
                 if( typeof curr_dicom_dataset[key] == "object" )
-                    delete curr_dicom_dataset[key];
-                else if( typeof tag_filter == "string" && String(curr_dicom_dataset[key]).indexOf(tag_filter) == -1 )                
-                    delete curr_dicom_dataset[key];
+                    curr_dicom_dataset[key] = null;
+                else if( typeof tag_filter == "string" && String(key).indexOf(tag_filter) == -1 )                
+                    curr_dicom_dataset[key] = null;
             }
-            
-            this.update( { "curr_dicom_dataset": curr_dicom_dataset } );
+            let only_null_values = true;
+            for( let tag_name in curr_dicom_dataset )
+            {
+                if( curr_dicom_dataset[tag_name] != null )
+                {
+                    only_null_values = false;
+                    break;
+                }
+            }
+            this.update( { "curr_dicom_dataset": only_null_values ? null : curr_dicom_dataset } );
         }
         ///
         /// @param object updated_items all changes as path -> value items
