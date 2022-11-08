@@ -29,7 +29,7 @@
         ///  
         _filter_on_update( path, value ) { 
             if( path.match(/\/population$/) )
-                return parseFloat(value);
+                return parseFloat(value) + 0.1;
             //document.getElementById("console").innerHTML += `<p>_filter_on_update: path='${path}', value='${String( value )}'</p>`
             return value; }
         ///

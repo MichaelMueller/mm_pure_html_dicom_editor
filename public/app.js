@@ -132,9 +132,11 @@ class App
             let updated_value = this._filter_on_update( curr_path, changes[key], true );
             let curr_value = key in target ? target[key] : null;
             if( validate && this._is_valid(curr_path, updated_value, curr_value) == false )
-                continue
+                continue;
             
             // validation passed, now apply the value
+            updated_items[curr_path] = updated_value;
+            prev_items[curr_path] = curr_value;   
             if( updated_value != null && ["Array", "Object"].includes(updated_value.constructor.name) )
             {                
                 let child_changes = updated_value;
@@ -142,21 +144,19 @@ class App
                     target[key] = child_changes.constructor.name == "Array" ? [] : {};
                 let child_target = target[key];
 
-                changed = changed || this._recursive_update( child_changes, validate, child_target, updated_items, prev_items, curr_path );
-                if( changed )
-                    prev_items[curr_path] = child_target;
+                let child_changed = this._recursive_update( child_changes, validate, child_target, updated_items, prev_items, curr_path );
+                if( child_changed == false )
+                {
+                    delete updated_items[curr_path];
+                    delete prev_items[curr_path];
+                }
+                changed = changed || child_changed;
             }
             else            
             {
                 target[key] = updated_value;
                 changed = true;
-            }  
-            // if nothing was changed do not add     
-            if( changed )
-            {
-                updated_items[curr_path] = updated_value;
-                prev_items[curr_path] = curr_value;   
-            }         
+            } 
         }
         return changed;
     }
@@ -287,7 +287,7 @@ class HtmlApp extends App
     _on_updated( updated_items, prev_items ) 
     {
         let updated_paths = Object.keys(updated_items);
-        updated_paths.reverse();
+        //updated_paths.reverse();
         for( let path of updated_paths )
         {
             let value = updated_items[path];
@@ -307,6 +307,8 @@ class HtmlApp extends App
                 for( let i=0; i < elements.length; ++ i)
                 {                    
                     let elem = elements.item(i);
+                    if( elem.children.length == 0 )
+                        continue;
                     let first_child = elem.children[0];
                     first_child.style.display = "none";
                     let first_child_html = new XMLSerializer().serializeToString(first_child);

@@ -173,7 +173,7 @@
                 <p data-bind-display="files"><span data-bind-display="dicom_files" data-bind-display-invert="">The source directory does not contain any DICOM files.</span></p>
                 <p data-bind-display="dicom_files">
                     <select name="selected_dicom_files" size="8" multiple data-bind-value data-bind-object="dicom_files" style="width: 100%;">
-                        <option value="$key$" data-bind-html="dicom_files.$key$"></option>
+                        <option value="$key$" data-bind-html="dicom_files/$key$"></option>
                     </select>
                 </p>
             </div>            
@@ -187,7 +187,7 @@
             <div>
                 <p data-bind-display="curr_dicom_dataset" data-bind-display-invert>No file selected.</p>
                 <div data-bind-object="curr_dicom_dataset" data-bind-display="curr_dicom_dataset">
-                    <p><b>$key$:</b>&nbsp;$value$</p>
+                    <p><b>$key$:</b>&nbsp;<span data-bind-html="curr_dicom_dataset/$key$"></span></p>
                 </div>
             </div>            
         </div> 
@@ -302,7 +302,7 @@
                         for(let key of Object.keys(dicom_dataset))
                         {
                             // do not show object tags
-                            if( typeof dicom_dataset[key] == "object#" )
+                            if( typeof dicom_dataset[key] == "object" )
                                 delete dicom_dataset[key];
                         }
                         dicom_datasets.push(dicom_dataset);
