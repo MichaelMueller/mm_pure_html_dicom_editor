@@ -49,6 +49,10 @@
             font-size: var(--normal_font);
             font-family: var(--font);
             color: white;
+            display: flex;
+            flex-direction: row;
+            margin-right: var(--xxl_space);
+            margin-bottom: var(--xxl_space);
         }
         #loader_overlay
         {
@@ -83,7 +87,7 @@
     
             /* for "disabled" effect */
             pointer-events: none;
-            opacity: 0.7;
+            opacity: 0.4;
             background: #000;
         }
         .box > :first-child
@@ -186,8 +190,8 @@
                     <p><b>$key$:</b>&nbsp;$value$</p>
                 </div>
             </div>            
-        </div>
-            
+        </div> 
+
     </div>
 
     <!-- javascript -->
@@ -196,7 +200,7 @@
     ///
     /// Basic building block of applications 
     ///  
-    class Node
+    class App
     {
         ///
         /// @return this
@@ -214,7 +218,7 @@
         ///  
         update( changes ) 
         {
-            Node.assert( typeof changes == "object", `expected typeof 'changes' == "object", got ${String(changes)}:${typeof changes}`);
+            App.assert( typeof changes == "object", `expected typeof 'changes' == "object", got ${String(changes)}:${typeof changes}`);
             return this._update( changes, true );
         }
         ///        

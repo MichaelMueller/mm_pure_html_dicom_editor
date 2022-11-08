@@ -13,69 +13,74 @@
     <script src="public/app.js"></script>
     <script>
 
-    class TestNode extends Node
+    ///
+    /// Test App
+    ///
+    class CountriesDatabase extends App
     {
         constructor()
         {
             super();
-            this._update( { "restricted": 5 } );
-        }
-        ///        
-        /// @param string path
-        /// @param mixed value
-        /// @return mixed
-        ///  
-        _filter( path, value ) 
-        {
-            if( path == "test" )
-                return typeof value == "string" && value == "false" ? false : Boolean(value); 
-            return value; 
-        }
-        ///        
-        /// @param string path
-        /// @param mixed value
-        /// @param mixed curr_value
-        /// @return null|string description of the expected value
-        ///  
-        _validate( path, value, curr_value ) 
-        { 
-            if( path == "test" )
-                return typeof value == "boolean" ?  null : `Expected bool, got "[${typeof value} ${String(value)}], current value: ${String(curr_value)}`
-            else if( path == "test_int" )
-                return typeof value == "integer" ?  null : `Expected integer, got "[${typeof value} ${String(value)}], current value: ${String(curr_value)}`
-            return null; 
         }
         ///
         /// @param string path
-        /// @return string|null
-        ///  
-        _on_access( path ) { 
-            if( path == "restricted" )
-                return false;
-            return true;
-        }
-        ///
-        /// @param object changes
-        /// @param object prev_value
+        /// @param mixed value
         /// @return void
         ///  
-        _on_updated( changes, prev_values ) {
-            for( let key in changes )
-            {
-                document.getElementById("console").innerHTML += `changed: '${key}'=${JSON.stringify( changes[key] )}, previous_value=${JSON.stringify( prev_values[key] )}\n`
-
-            }
+        _filter_on_update( path, value ) { 
+            //document.getElementById("console").innerHTML += `<p>_filter_on_update: path='${path}', value='${String( value )}'</p>`
+            return value; }
+        ///
+        /// @param string path
+        /// @param mixed value
+        /// @return void
+        ///  
+        _filter_on_get( path, value ) { 
+            //document.getElementById("console").innerHTML += `<p>_filter_on_get: path='${path}', value='${String( value )}'</p>`
+            return value; }
+        ///
+        /// @param object changes
+        /// @param object curr_value
+        /// @return bool
+        ///  
+        _is_valid( path, updated_value, curr_value ) 
+        {             
+            //document.getElementById("console").innerHTML += `<p>_is_valid: path='${path}', updated_value='${String( updated_value )}', curr_value='${String( curr_value )}'</p>`
+            return true; 
         }
-
+        ///
+        /// @param object updated_items all changes as path -> value items
+        /// @param object prev_values
+        /// @return void
+        ///  
+        _on_updated( updated_items, prev_items ) 
+        {            
+            for( let path in updated_items )
+                document.getElementById("console").innerHTML += `<p>_on_updated: path='${path}', updated_value='${String( updated_items[path] )}', prev_value='${String( prev_items[path] )}'</p>`
+        }
     }
-
     
     document.addEventListener("DOMContentLoaded", function(event) 
     {                 
-        let test_node = new TestNode();
-        test_node.update( { "test": "false" } );
-        test_node.update( { "test_int": "false" } );
-        test_node.update( { "test_int": {"blaa":1} } );
+        let countries_databse = new CountriesDatabase();
+        countries_databse.update({
+            "de":
+            {
+                "name": "Federal Republic of Germany",
+                "population": 82,
+            },
+            "usa":
+            {
+                "name": "United States of America",
+                "population": 350,
+            },
+            "uk":
+            {
+                "name": "United Kingdom",
+                "population": 76,
+            }
+        });
+        countries_databse.update({"uk": { "population": 66 }})
     });
     </script>
 

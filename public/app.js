@@ -1,7 +1,7 @@
 ///
 /// Basic building block of applications 
 ///  
-class Node
+class App
 {
     ///
     /// @return this
@@ -12,22 +12,6 @@ class Node
         /// @var object
         ///
         this._data = {};
-        ///
-        /// @var map<string, function<<mixed>, mixed>
-        ///
-        this._update_filter_callbacks = {};
-        ///
-        /// @var map<string, function<<mixed, mixed>, null|string>
-        ///
-        this._update_callbacks = {};
-        ///
-        /// @var map<string, function<<mixed, mixed>, null|string>
-        ///
-        this._get_callbacks = {};
-        ///
-        /// @var map<string, function<<mixed>, mixed>
-        ///
-        this._get_filter_callbacks = {};
     }
     ///        
     /// @param object changes
@@ -35,8 +19,6 @@ class Node
     ///  
     update( changes ) 
     {
-        if( typeof changes != "object" )
-            changes = [changes];
         return this._update( changes, true );
     }
     ///        
@@ -45,10 +27,7 @@ class Node
     ///  
     get( path )
     {
-        let _on_get_callback = this._get_callback
-        if( error )
-            return null;
-
+        // recursively get the value
         let keys = String(path).split(".");
         let curr_object = this._data;
         while( keys.length > 0 )
@@ -58,23 +37,9 @@ class Node
                 return null;
             curr_object = curr_object[key];
         }
-        if( typeof curr_object == "object" )
-        {
-            let deep_copy = function deep_copy( obj )
-            {
-                if( typeof obj == "object" )
-                {
-                    let copy = Array.isArray(obj) ? [] : {};
-                    for( let key in obj )
-                        copy[key] = deep_copy( obj[key] );
-                    return copy;                        
-                }
-                else
-                    return obj;
-            }
-            return deep_copy( curr_object );
-        }
-        return curr_object;
+
+        // filter the object if necessary
+        return this._filter_on_get( path, App.deep_copy( curr_object ) );
     }
     ///        
     /// @param string path
@@ -93,7 +58,7 @@ class Node
     ///  
     _set( path, value, validate=false )
     {
-        
+        // convert to changes object       
         let keys = String(path).split(".");
         let changes = {};
         let curr_object = changes;
@@ -117,98 +82,96 @@ class Node
     ///  
     _update( changes, validate=false ) 
     {
-        let prev_values = {};
-        let errors = {};
+        let updated_items = {};
+        let prev_items = {};
+        let parent_path = null;
 
-        // reset errors
-        if( validate )
-            this._set( "errors", null, false );
-
-        this._recursive_update( changes, validate, this._data, prev_values, errors, null );
-
-        // set errors
-        if( Object.keys(errors).length > 0 )
-            this._update( {"errors": errors} );
-        
-        if( Object.keys(changes).length > 0 )
-            this._on_updated( changes, prev_values );
+        this._recursive_update( changes, validate, this._data, updated_items, prev_items, parent_path );        
+        this._on_updated( updated_items, prev_items );
     }
     ///        
     /// @param object changes
     /// @param bool validate
     /// @param object target
-    /// @param object prev_values
-    /// @param object errors
+    /// @param object updated_items
+    /// @param object prev_items
     /// @param string|null parent_path
     /// @return this
     ///  
-    _recursive_update( changes, validate, target, prev_values, errors, parent_path=null ) 
+    _recursive_update( changes, validate, target, updated_items, prev_items, parent_path ) 
     {
+        // first level checks
+        if( changes == null || typeof changes != "object" )
+        {
+            console.error("changes must be a map-like object or array, not "+String(changes));
+            return this;
+        }
+
+        // prev_values will have the same structure as the changes
         let keys = Object.keys(changes);
         for( let key of keys )
         {
             let curr_path = ( parent_path ? parent_path + "." : "" ) + String(key);
-            // use filter here
-            let value = this._filter( curr_path, changes[key] );
+            // use filter if needed
+            let updated_value = this._filter_on_update( curr_path, changes[key], true );
             let curr_value = key in target ? target[key] : null;
-            // check if we need validation
-            if( validate )
-            {
-                let expected_value = this._validate( curr_path, value, curr_value );
-                if( expected_value !== null )
-                {
-                    errors[curr_path] = expected_value;
-                    delete changes[key];
-                    continue;
-                }
-            }
+            if( validate && this._is_valid(curr_path, updated_value, curr_value) == false )
+                continue
+            
+            // validation passed, now apply the value
+            prev_items[curr_path] = curr_value;
+            updated_items[curr_path] = updated_value;
+            if( updated_value != null && typeof updated_value == "object" )
+            {                
+                let child_changes = updated_value;
+                if( curr_value == null || curr_value.constructor.name != child_changes.constructor.name )                
+                    target[key] = child_changes.constructor.name == "Array" ? [] : {};
+                let child_target = target[key];
 
-            // validation passed apply the value
-            target[key] = changes[key];
-            prev_values[key] = curr_value;
+                this._recursive_update( child_changes, validate, child_target, updated_items, prev_items, curr_path );
+            }
+            else            
+                target[key] = updated_value;            
         }
-    }
-    ///        
-    /// @param string path_expression
-    /// @param string type one of "update_filter", "update", "get", "get_filter"
-    /// @return mixed
-    ///  
-    _callback_for( path_expression, type ) 
-    { 
-        let filter_var_name = "_" + type + "_callbacks";
-        if( path_expression in this[filter_var_name] )
-            return this[filter_var_name][path_expression];
-        else
-        {
-            let last_dot_pos = path_expression.lastIndexOf(".");
-            let wildcard_path = null;
-            if( last_dot_pos == -1 )
-                wildcard_path = "*";
-            else
-                wildcard_path = path_expression.substring(0, last_dot_pos)+".*";
-            if( wildcard_path in this[filter_var_name] ) 
-                return this[filter_var_name][wildcard_path];
-        }
-        return null; 
     }
     ///
-    /// @param object changes
-    /// @param object prev_value
+    /// @param string path
+    /// @param mixed value
     /// @return void
     ///  
-    _on_updated( changes, prev_values ) {}
+    _filter_on_update( path, value ) { return value; }
     ///
-    /// @param bool condition
-    /// @param string error_message
+    /// @param string path
+    /// @param mixed value
+    /// @return void
+    ///  
+    _filter_on_get( path, value ) { return value; }
+    ///
+    /// @param object changes
+    /// @param object curr_value
     /// @return bool
     ///  
-    static assert( condition, error_message )
-    {
-        if( Boolean(condition) === false )
+    _is_valid( path, updated_value, curr_value ) { return true; }
+    ///
+    /// @param object updated_items all changes as path -> value items
+    /// @param object prev_values
+    /// @return void
+    ///  
+    _on_updated( updated_items, prev_items ) {}
+    ///
+    /// @param object object
+    /// @return object
+    ///  
+    static deep_copy( obj )
+    {        
+        if( obj != null && typeof obj == "object" )
         {
-            console.error( String(error_message) );
-            return false;
+            let copy = Array.isArray(obj) ? [] : {};
+            for( let key in obj )
+                copy[key] = deep_copy( obj[key] );
+            return copy;                        
         }
-        return true;
+        else
+            return obj;
     }
 }
