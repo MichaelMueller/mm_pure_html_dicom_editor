@@ -196,166 +196,37 @@
 
     <!-- javascript -->
     <script src="https://cdn.jsdelivr.net/npm/dcmjs@0.28.0/build/dcmjs.min.js"></script>
+    <script src="app.js"></script>
     <script>
-
-    class PureHtmlDicomEditorApp
+    ///
+    /// implements the logic
+    ///  
+    class PureHtmlDicomEditorApp extends HtmlApp
     {
+        ///
+        /// @param object updated_items all changes as path -> value items
+        /// @param object prev_values
+        /// @return this
+        ///  
         constructor()
         {
-            // inputs
-            this._data = {};
-            this._changes = {};
-            this._active_element = null;
+            super();
         }
-
-        init()
-        {            
-            document.addEventListener("DOMContentLoaded", function(event) 
-            {                 
-                document.addEventListener("change", function(event) 
-                { 
-                    let elem = event.target;
-                    if( "bindValue" in elem.dataset )
-                    {
-                        let value = null;
-                        if( elem.tagName.toLowerCase() == "input" && elem.getAttribute("type").toLowerCase() == "file" )                        
-                            value = event.target.files;
-                        else if("options" in event.target)
-                        {
-                            const selectedValues = [];
-
-                            for (let i = 0; i < event.target.options.length; i++)                             
-                                if (event.target.options[i].selected)                                 
-                                    selectedValues.push(event.target.options[i].value);
-                            value = selectedValues;
-                        }
-                        else
-                            value = event.target.value;
-                        this._active_element = elem;
-                        this.set( elem.getAttribute("name"), value );
-                        this._active_element = null;
-                    }
-                    
-                }.bind(this));
-
-                // init the data
-                this.update( { "files": null, "loading": false } );
-            }.bind(this));
-        }
-
-        update( changes )
-        {
-            let prev_values = {};
-            this.apply( changes, this._data, prev_values );
-            this._changed( changes, prev_values )
-        }
-        set( path, value )
-        {
-            let keys = String(path).split(".");
-            let changes = {};
-            let curr_object = changes;
-            while( keys.length > 0 )
-            {
-                let key = keys.shift();
-                if( keys.length == 0 )
-                    curr_object[key] = value;
-                else
-                {
-                    curr_object[key] = {};
-                    curr_object = curr_object[key];
-                }
-            }
-            return this.update( changes );
-        }
-        apply( changes, target, prev_values )
-        {
-            for(let key in changes)
-            {
-                prev_values[key] = typeof target == "object" && key in target ? target[key] : null;
-
-                if( changes[key] != null && typeof changes[key] == "object" )
-                {                    
-                    if( Array.isArray( changes[key] ) && ( !(key in target) || Array.isArray( target[key] == false ) ) )                    
-                        target[key] = [];                    
-                    else if( typeof target[key] != "object" || !(key in target) )
-                        target[key] = {};
-                    prev_values[key] = Array.isArray( changes[key] ) ? [] : {};
-                    this.apply( changes[key], target[key], prev_values );
-                }
-                else     
-                    target[key] = changes[key];
-                
-            }
-        }
-
-
-        
-        get( path )
-        {
-            let keys = String(path).split(".");
-            let curr_object = this._data;
-            while( keys.length > 0 )
-            {
-                let key = keys.shift();
-                if( typeof curr_object != "object" || !( key in curr_object ) )
-                    return null;
-                curr_object = curr_object[key];
-            }
-            return curr_object;
-        }
-
-        _changed( changes, prev_values )
+        ///
+        /// @param object updated_items all changes as path -> value items
+        /// @param object prev_values
+        /// @return void
+        ///  
+        _on_updated( updated_items, prev_items ) 
         {                   
             // PROPAGATE CHANGES               
-            if( "files" in changes )
+            if( "files" in updated_items )
             {
-                let files = changes["files"];
+                let files = updated_items["files"];
                 
                 if( files instanceof FileList )
                 {
-                    let dicom_files = [];
-                    let dicom_datasets = [];
-                    let files_processed = 0;
-                    // Start loading file
-                    this.update( { "loading": true } );
-                    for(var i = 0; i < files.length; ++i)
-                    {            
-                        let reader = new FileReader();
-                        var file = files.item(i);
-                        reader.onload = (readerEvt) => 
-                        {
-                            try 
-                            {                            
-                                let DicomDict = dcmjs.data.DicomMessage.readFile(reader.result);
-                                let dicom_dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(DicomDict.dict);
-                                for(let key of Object.keys(dicom_dataset))
-                                {
-                                    // do not show object tags
-                                    if( typeof dicom_dataset[key] == "object#" )
-                                        delete dicom_dataset[key];
-                                }
-                                dicom_datasets.push(dicom_dataset);
-                                dicom_files.push(readerEvt.target.webkitRelativePath);
-                            } 
-                            catch (error) 
-                            {
-                                console.log( error.toString() );
-                            }
-                        };
-                        reader.onerror = () => { console.error(reader.error); };
-                        reader.onloadend = () => 
-                        { 
-                            files_processed++; 
-                            if(files_processed == files.length)
-                            {
-                                this.update( { "dicom_files": dicom_files,
-                                    "dicom_datasets": dicom_datasets,
-                                    "loading": false } );                 
-                            }
-                        };
-                        reader.webkitRelativePath = file.webkitRelativePath;
-                        reader.readAsArrayBuffer( file );
-                    }                    
+                    this._load_dicom_files( files );
                 }
                 else
                 {
@@ -365,13 +236,13 @@
                 }
                 
             }
-            else if( "dicom_files" in changes || "dicom_datasets" in changes )
+            else if( "dicom_files" in updated_items || "dicom_datasets" in updated_items )
             {
                 this.update({ "selected_dicom_files": null})
             }
-            else if( "selected_dicom_files" in changes )
+            else if( "selected_dicom_files" in updated_items )
             {                
-                let selected_dicom_files = changes["selected_dicom_files"];
+                let selected_dicom_files = updated_items["selected_dicom_files"];
                 if( selected_dicom_files == null || selected_dicom_files.length == 0)
                 {
                     this.update( { "curr_dicom_dataset": null } );
@@ -393,9 +264,9 @@
                     this.update( { "curr_dicom_dataset": curr_dicom_dataset } );
                 }
             }
-            else if( "curr_dicom_dataset" in changes )
+            else if( "curr_dicom_dataset" in updated_items )
             {
-                let curr_dicom_dataset = changes["curr_dicom_dataset"];
+                let curr_dicom_dataset = updated_items["curr_dicom_dataset"];
                 if( curr_dicom_dataset == null )
                 {
                 }
@@ -403,19 +274,64 @@
                 {
                 }
             }
-                
-            // DOM changes
-            this._update_dom_recursive( changes, prev_values );
-            
+            // update dom here
+            super._on_updated( updated_items, prev_items );
         }
-
-        _update_dom_recursive( changes, prev_values, parent_path=null )
-        {
-            
+        ///
+        /// @param object updated_items all changes as path -> value items
+        /// @param object prev_values
+        /// @return void
+        ///  
+        _load_dicom_files(files)
+        {            
+            let dicom_files = [];
+            let dicom_datasets = [];
+            let files_processed = 0;
+            // Start loading file
+            this.update( { "loading": true } );
+            for(var i = 0; i < files.length; ++i)
+            {            
+                let reader = new FileReader();
+                var file = files.item(i);
+                reader.onload = (readerEvt) => 
+                {
+                    try 
+                    {                            
+                        let DicomDict = dcmjs.data.DicomMessage.readFile(reader.result);
+                        let dicom_dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(DicomDict.dict);
+                        for(let key of Object.keys(dicom_dataset))
+                        {
+                            // do not show object tags
+                            if( typeof dicom_dataset[key] == "object#" )
+                                delete dicom_dataset[key];
+                        }
+                        dicom_datasets.push(dicom_dataset);
+                        dicom_files.push(readerEvt.target.webkitRelativePath);
+                    } 
+                    catch (error) 
+                    {
+                        console.log( error.toString() );
+                    }
+                };
+                reader.onerror = () => { console.error(reader.error); };
+                reader.onloadend = () => 
+                { 
+                    files_processed++; 
+                    if(files_processed == files.length)
+                    {
+                        this.update( { "dicom_files": dicom_files,
+                            "dicom_datasets": dicom_datasets,
+                            "loading": false } );                 
+                    }
+                };
+                reader.webkitRelativePath = file.webkitRelativePath;
+                reader.readAsArrayBuffer( file );
+            }                    
         }
     }
     var pure_html_dicom_editor_app = new PureHtmlDicomEditorApp();
-    pure_html_dicom_editor_app.init();
+    // init the data
+    pure_html_dicom_editor_app.update( { "files": null, "loading": false } );
     </script>
 
   </body>

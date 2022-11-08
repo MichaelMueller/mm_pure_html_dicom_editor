@@ -142,7 +142,7 @@ class App
                     target[key] = child_changes.constructor.name == "Array" ? [] : {};
                 let child_target = target[key];
 
-                changed = this._recursive_update( child_changes, validate, child_target, updated_items, prev_items, curr_path );
+                changed = changed || this._recursive_update( child_changes, validate, child_target, updated_items, prev_items, curr_path );
                 if( changed )
                     prev_items[curr_path] = child_target;
             }
@@ -236,7 +236,6 @@ class HtmlApp extends App
                     let value = null;
                     if( elem.tagName.toLowerCase() == "input" && elem.getAttribute("type").toLowerCase() == "file" )
                     {
-                        path = path + ".files";
                         value = event.target.files;
                     }                        
                     else if("options" in event.target)
