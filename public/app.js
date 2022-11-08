@@ -1,5 +1,5 @@
 ///
-/// Basic building block of applications 
+/// Basic data updating and event mechanism
 ///  
 class App
 {
@@ -104,11 +104,11 @@ class App
         if( changes == null || typeof changes != "object" )
         {
             console.error("changes must be a map-like object or array, not "+String(changes));
-            return this;
+            return false;
         }
-
         // prev_values will have the same structure as the changes
         let keys = Object.keys(changes);
+        let changed = false;
         for( let key of keys )
         {
             let curr_path = ( parent_path ? parent_path + "." : "" ) + String(key);
@@ -119,8 +119,6 @@ class App
                 continue
             
             // validation passed, now apply the value
-            prev_items[curr_path] = curr_value;
-            updated_items[curr_path] = updated_value;
             if( updated_value != null && typeof updated_value == "object" )
             {                
                 let child_changes = updated_value;
@@ -128,11 +126,23 @@ class App
                     target[key] = child_changes.constructor.name == "Array" ? [] : {};
                 let child_target = target[key];
 
-                this._recursive_update( child_changes, validate, child_target, updated_items, prev_items, curr_path );
+                changed = this._recursive_update( child_changes, validate, child_target, updated_items, prev_items, curr_path );
+                if( changed )
+                    prev_items[curr_path] = child_target;
             }
             else            
-                target[key] = updated_value;            
+            {
+                target[key] = updated_value;
+                changed = true;
+            }  
+            // if nothing was changed do not add     
+            if( changed )
+            {
+                updated_items[curr_path] = updated_value;
+                prev_items[curr_path] = curr_value;   
+            }         
         }
+        return changed;
     }
     ///
     /// @param string path
@@ -174,4 +184,11 @@ class App
         else
             return obj;
     }
+}
+///
+/// Mirrors changes to the DOM and vice versa
+///  
+class HtmlApp
+{
+
 }

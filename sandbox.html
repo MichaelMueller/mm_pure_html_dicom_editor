@@ -28,6 +28,8 @@
         /// @return void
         ///  
         _filter_on_update( path, value ) { 
+            if( path.match(/^[^.]*.population$/) )
+                return parseFloat(value) + 0.1;
             //document.getElementById("console").innerHTML += `<p>_filter_on_update: path='${path}', value='${String( value )}'</p>`
             return value; }
         ///
@@ -35,7 +37,9 @@
         /// @param mixed value
         /// @return void
         ///  
-        _filter_on_get( path, value ) { 
+        _filter_on_get( path, value ) {
+            if( path.match(/^[^.]*.population$/) )
+                return Math.round(value - 1.1);
             //document.getElementById("console").innerHTML += `<p>_filter_on_get: path='${path}', value='${String( value )}'</p>`
             return value; }
         ///
@@ -45,7 +49,11 @@
         ///  
         _is_valid( path, updated_value, curr_value ) 
         {             
-            //document.getElementById("console").innerHTML += `<p>_is_valid: path='${path}', updated_value='${String( updated_value )}', curr_value='${String( curr_value )}'</p>`
+            if( curr_value != null && path.match(/^[^.]*.name/) )
+            {
+                console.error(path+" is immutable");
+                return false;
+            }
             return true; 
         }
         ///
@@ -54,9 +62,10 @@
         /// @return void
         ///  
         _on_updated( updated_items, prev_items ) 
-        {            
+        {       
+            document.getElementById("console").innerHTML += "<p>_on_updated</p>";
             for( let path in updated_items )
-                document.getElementById("console").innerHTML += `<p>_on_updated: path='${path}', updated_value='${String( updated_items[path] )}', prev_value='${String( prev_items[path] )}'</p>`
+                document.getElementById("console").innerHTML += `<p>&nbsp;&nbsp;&nbsp;&nbsp;path='${path}', updated_value='${String( updated_items[path] )}', prev_value='${String( prev_items[path] )}'</p>`
         }
     }
     
@@ -81,6 +90,11 @@
             }
         });
         countries_databse.update({"uk": { "population": 66 }})
+        countries_databse.set("usa.population", 356);
+        document.getElementById("console").innerHTML += `<p>usa.population='${countries_databse.get("usa.population")}'</p>`
+        
+        countries_databse.update({"uk": { "name": "gambia" }})
+        
     });
     </script>
 
