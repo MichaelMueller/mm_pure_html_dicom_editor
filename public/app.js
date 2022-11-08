@@ -155,6 +155,13 @@ class App
             else            
             {
                 target[key] = updated_value;
+                if( target[key] == null )
+                {
+                    if( Array.isArray( target ) )
+                        target.remove( key );
+                    else
+                        delete target[key];
+                }
                 changed = true;
             } 
         }
@@ -236,6 +243,7 @@ class HtmlApp extends App
                     let value = null;
                     if( elem.tagName.toLowerCase() == "input" && elem.getAttribute("type").toLowerCase() == "file" )
                     {
+                        path = "bindFiles" in elem.dataset ? elem.dataset.bindFiles : path;
                         value = event.target.files;
                     }                        
                     else if("options" in event.target)
@@ -308,7 +316,10 @@ class HtmlApp extends App
                 {                    
                     let elem = elements.item(i);
                     if( elem.children.length == 0 )
+                    {
+                        console.error("A template element at index 0 is needed for element with path "+`[data-bind-object="${path}"]`);
                         continue;
+                    }
                     let first_child = elem.children[0];
                     first_child.style.display = "none";
                     let first_child_html = new XMLSerializer().serializeToString(first_child);

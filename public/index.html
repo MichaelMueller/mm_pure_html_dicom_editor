@@ -20,6 +20,7 @@
         }
         @media screen and (min-width: 1280px) 
         {
+            /*
             :root
             {   
                 --normal_font: 24px;   
@@ -31,6 +32,7 @@
                 --border_size: 2px;
                 --icon_height: 64px;
             }
+            */
         }
         
         *
@@ -38,6 +40,11 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;       
+        }
+        p
+        {
+            margin-top: var(--m_space);
+            margin-bottom: var(--m_space);
         }
         body
         {
@@ -76,6 +83,25 @@
         #right_col
         {
             flex: 1;
+        }
+        a
+        {
+            color: #fff;
+            text-decoration: none;
+        }
+        .button
+        {      
+            display: inline-block;
+            font-weight: bold;
+            border-radius: var(--l_space);
+            padding: var(--l_space);
+            text-transform: uppercase;
+            background: rgb(4,109,182);
+            background: linear-gradient(90deg, rgba(4,109,182,1) 0%, rgba(7,123,198,1) 33%, rgba(12,147,226,1) 66%, rgba(16,166,250,1) 100%);
+        }
+        .button:hover
+        {
+            background: linear-gradient(90deg, rgba(4,109,182,0.7) 0%, rgba(7,123,198,0.7) 33%, rgba(12,147,226,0.7) 66%, rgba(16,166,250,0.7) 100%);
         }
         .box
         {      
@@ -149,7 +175,7 @@
     <div id="left_col">
 
         <div id="headline" class="box box_enabled">
-            <p>Pure HTML Dicom Editor</p>
+            <div>Pure HTML Dicom Editor</div>
             <div>
                 <p>Easy DICOM File manipulation just by using HTML5 technology.</p>
                 <p>&nbsp;</p>
@@ -158,16 +184,16 @@
         </div>
 
         <div id="files_source" class="box box_enabled">
-            <p>Source directory</p>
+            <div>Source directory</div>
             <div>
                 <p>Please select the directory containing your DICOM files. Only DICOM files will be collected.</p>
                 <p>&nbsp;</p>
-                <p><input type="file" webkitdirectory mozdirectory directory data-bind-value name="files" /></p>       
+                <p><input type="file" webkitdirectory mozdirectory directory data-bind-value name="source_directory" data-bind-files="files" /></p>       
             </div>
         </div>
 
         <div id="selected_files" class="box" data-bind-css-class="files" data-css-class="box_enabled">
-            <p>File selection</p>
+            <div>File & tag filter</div>
             <div>                    
                 <p data-bind-display="files" data-bind-display-invert="">Currently no source directory selected.</p>
                 <p data-bind-display="files"><span data-bind-display="dicom_files" data-bind-display-invert="">The source directory does not contain any DICOM files.</span></p>
@@ -176,6 +202,10 @@
                         <option value="$key$" data-bind-html="dicom_files/$key$"></option>
                     </select>
                 </p>
+                <div data-bind-display="curr_dicom_dataset">
+                    <p>Tag filter:</p>
+                    <p><input type="text" name="tag_filter" data-bind-value style="width: 100%;"></p>
+                </div>
             </div>            
         </div>           
     </div>      
@@ -183,13 +213,29 @@
     <div id="right_col">
         
         <div class="box" data-bind-css-class="curr_dicom_dataset" data-css-class="box_enabled">
-            <p>DICOM Tag Editor</p>
+            <div>DICOM Tag Editor</div>
             <div>
                 <p data-bind-display="curr_dicom_dataset" data-bind-display-invert>No file selected.</p>
-                <div data-bind-object="curr_dicom_dataset" data-bind-display="curr_dicom_dataset">
-                    <p><b>$key$:</b>&nbsp;<span data-bind-html="curr_dicom_dataset/$key$"></span></p>
+                <div data-bind-display="curr_dicom_dataset">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tag Name</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody data-bind-object="curr_dicom_dataset">
+                            <tr>
+                                <td><b>$key$:</b></td>
+                                <td style="width: 100%;"><input type="text" name="curr_dicom_dataset/$key$" data-bind-value style="width: 100%;"></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-            </div>            
+                <p data-bind-display="curr_dicom_dataset">
+                    <a href="#" class="button">Apply changes & download</a> 
+                </p>
+            </div>           
         </div> 
 
     </div>
@@ -241,41 +287,52 @@
                 this.update({ "selected_dicom_files": null})
             }
             else if( "selected_dicom_files" in updated_items )
-            {                
-                let selected_dicom_files = updated_items["selected_dicom_files"];
-                if( selected_dicom_files == null || selected_dicom_files.length == 0)
-                {
-                    this.update( { "curr_dicom_dataset": null } );
-                }
-                else
-                {
-                    let curr_dicom_dataset = {};
-                    for( let selected_dcm_file_idx of selected_dicom_files )
-                    {
-                        let file_dicom_dataset = this._data.dicom_datasets[ selected_dcm_file_idx ];
-                        for( let tag_name in file_dicom_dataset )
-                        {
-                            if( !(tag_name in curr_dicom_dataset ) )
-                                curr_dicom_dataset[tag_name] = file_dicom_dataset[tag_name];
-                            else if( curr_dicom_dataset[tag_name] != file_dicom_dataset[tag_name] )
-                                delete curr_dicom_dataset[tag_name]; 
-                        }
-                    }
-                    this.update( { "curr_dicom_dataset": curr_dicom_dataset } );
-                }
+            {    
+                this._filter_curr_dicom_dataset();  
             }
-            else if( "curr_dicom_dataset" in updated_items )
+            else if( "tag_filter" in updated_items )
             {
-                let curr_dicom_dataset = updated_items["curr_dicom_dataset"];
-                if( curr_dicom_dataset == null )
-                {
-                }
-                else
-                {
-                }
+                this._filter_curr_dicom_dataset();
             }
             // update dom here
             super._on_updated( updated_items, prev_items );
+        }
+        ///
+        /// @return void
+        ///  
+        _filter_curr_dicom_dataset()
+        {            
+            this.update( { "curr_dicom_dataset": null } );
+            let selected_dicom_files = this.get("selected_dicom_files");
+            if( selected_dicom_files == null || selected_dicom_files.length == 0)
+            {
+                return;
+            }
+            let curr_dicom_dataset = {};
+            // get common keys
+            for( let selected_dcm_file_idx of selected_dicom_files )
+            {
+                let file_dicom_dataset = this._data.dicom_datasets[ selected_dcm_file_idx ];
+                for( let tag_name in file_dicom_dataset )
+                {
+                    if( !(tag_name in curr_dicom_dataset ) )
+                        curr_dicom_dataset[tag_name] = file_dicom_dataset[tag_name];
+                    else if( curr_dicom_dataset[tag_name] != file_dicom_dataset[tag_name] )
+                        delete curr_dicom_dataset[tag_name]; 
+                }
+            }
+            let tag_filter = this.get("tag_filter");
+            // filter out not string keys
+            for(let key of Object.keys(curr_dicom_dataset))
+            {
+                // do not show object tags
+                if( typeof curr_dicom_dataset[key] == "object" )
+                    delete curr_dicom_dataset[key];
+                else if( typeof tag_filter == "string" && String(curr_dicom_dataset[key]).indexOf(tag_filter) == -1 )                
+                    delete curr_dicom_dataset[key];
+            }
+            
+            this.update( { "curr_dicom_dataset": curr_dicom_dataset } );
         }
         ///
         /// @param object updated_items all changes as path -> value items
@@ -299,12 +356,6 @@
                     {                            
                         let DicomDict = dcmjs.data.DicomMessage.readFile(reader.result);
                         let dicom_dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(DicomDict.dict);
-                        for(let key of Object.keys(dicom_dataset))
-                        {
-                            // do not show object tags
-                            if( typeof dicom_dataset[key] == "object" )
-                                delete dicom_dataset[key];
-                        }
                         dicom_datasets.push(dicom_dataset);
                         dicom_files.push(readerEvt.target.webkitRelativePath);
                     } 
