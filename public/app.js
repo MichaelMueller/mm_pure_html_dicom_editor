@@ -135,7 +135,7 @@ class App
                 continue
             
             // validation passed, now apply the value
-            if( updated_value != null && typeof updated_value == "object" )
+            if( updated_value != null && ["Array", "Object"].includes(updated_value.constructor.name) )
             {                
                 let child_changes = updated_value;
                 if( curr_value == null || curr_value.constructor.name != child_changes.constructor.name )                
@@ -298,14 +298,6 @@ class HtmlApp extends App
             if( Array.isArray(value) && value.length == 0 )
                 bool_value = false;
 
-            // the general exist binding (remove element if)
-            /*let elements = document.querySelectorAll(`[data-bind-exist="${path}"]`);
-            for( let i=0; i < elements.length; ++ i)
-            {
-                let elem = elements.item(i);
-                if( bool_value == false )
-                    elem.remove();           
-            }*/
             let elements = null;
             // bind whole object to elements
             if( value != null && typeof value == "object" )
