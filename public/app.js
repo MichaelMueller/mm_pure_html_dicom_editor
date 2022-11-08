@@ -12,7 +12,7 @@ class App
         ///
         /// @var object
         ///
-        this[this._delimiter] = {};
+        this._data = {};
     }
     ///
     /// @return string
@@ -35,14 +35,13 @@ class App
     ///  
     get( path )
     {
-        if( path == null || path == this._delimiter )
+        if( path == null )
             path = "";
 
-        let keys = String(path).split(this._delimiter);
-        keys[0] = this._delimiter;
+        let keys = path == "" ? [] : String(path).split(this._delimiter);
 
         // recursively get the value
-        let curr_object = this;
+        let curr_object = this._data;
         while( keys.length > 0 )
         {
             let key = keys.shift();
@@ -71,14 +70,10 @@ class App
     ///  
     _set( path, value, validate=false )
     {
-        if( path == null || path == this._delimiter || path == "")
-        {
-            console.error(`Invalid path ${path}`);
-            return this;
-        }
+        if( path == null )
+            path = "";
 
         let keys = String(path).split(this._delimiter);
-        keys.shift();
 
         // recursively build a change object
         let changes = {};
@@ -106,9 +101,8 @@ class App
         let updated_items = {};
         let prev_items = {};
         let parent_path = null;
-        changes = { [this._delimiter]: changes };
 
-        this._recursive_update( changes, validate, this, updated_items, prev_items, parent_path );        
+        this._recursive_update( changes, validate, this._data, updated_items, prev_items, parent_path );        
         this._on_updated( updated_items, prev_items );
     }
     ///        
@@ -133,7 +127,7 @@ class App
         let changed = false;
         for( let key of keys )
         {
-            let curr_path = ( parent_path == null ? "" : ( parent_path == this._delimiter ? parent_path : parent_path + this._delimiter) ) + String(key);
+            let curr_path = ( parent_path == null ? "" : parent_path + this._delimiter ) + String(key);
             // use filter if needed
             let updated_value = this._filter_on_update( curr_path, changes[key], true );
             let curr_value = key in target ? target[key] : null;

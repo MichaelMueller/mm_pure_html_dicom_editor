@@ -93,8 +93,8 @@
             }
         });
         countries_databse.update({"countries": {"uk": { "population": 66 }}});
-        countries_databse.set("/countries/usa/population", 356);
-        document.getElementById("console").innerHTML += `<p>/countries/usa/population='${countries_databse.get("/countries/usa/population")}'</p>`
+        countries_databse.set("countries/usa/population", 356);
+        document.getElementById("console").innerHTML += `<p>countries/usa/population='${countries_databse.get("countries/usa/population")}'</p>`
         document.getElementById("console").innerHTML += `<p>/='${countries_databse.get("/")}'</p>`
         
         countries_databse.update({"countries": {"uk": { "name": "gambia" }}});
@@ -144,11 +144,11 @@
                 <th>population</th>
             </tr>
         </thead>
-        <tbody data-bind-object="/countries">
+        <tbody data-bind-object="countries">
             <tr>
                  <td>$key$</td>
-                 <td data-bind-html="/countries/$key$/name"></td>
-                 <td data-bind-html="/countries/$key$/population"></td>
+                 <td data-bind-html="countries/$key$/name"></td>
+                 <td data-bind-html="countries/$key$/population"></td>
             </tr>
         </tbody>
     </table>
