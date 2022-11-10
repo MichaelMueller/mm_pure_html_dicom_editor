@@ -20,52 +20,56 @@
     {
         constructor()
         {
-            super();
+            super("/");
         }
         ///
         /// @param string path
         /// @param mixed value
         /// @return void
         ///  
-        _filter_on_update( path, value ) { 
-            if( path.match(/\/population$/) )
-                return parseFloat(value) + 0.1;
-            //document.getElementById("console").innerHTML += `<p>_filter_on_update: path='${path}', value='${String( value )}'</p>`
-            return value; }
+        _filter_changes( changes ) 
+        {             
+        }
         ///
         /// @param string path
         /// @param mixed value
         /// @return void
         ///  
         _filter_on_get( path, value ) {
-            if( path.match(/\/population$/) )
-                return Math.round(value);
-            //document.getElementById("console").innerHTML += `<p>_filter_on_get: path='${path}', value='${String( value )}'</p>`
             return value; }
         ///
         /// @param object changes
-        /// @param object curr_value
         /// @return bool
         ///  
-        _is_valid( path, updated_value, curr_value ) 
+        _validate( changes ) 
         {             
-            if( curr_value != null && path.endsWith("name") )
+            let ok = true;
+            if( "countries" in changes )
             {
-                console.error(path+" is immutable");
-                return false;
+                for( let country_id in changes["countries"] )
+                {
+                    if( "name" in changes["countries"][country_id] )
+                    {
+                        let name_path = "countries/"+country_id+"/name";
+                        if( this.get(name_path) != null )                    
+                        {
+                            console.error(name_path+" is immutable");
+                            ok = false;
+                        }
+                    } 
+                }
             }
-            return true; 
+            return ok; 
         }
         ///
         /// @param object updated_items all changes as path -> value items
         /// @param object prev_values
         /// @return void
         ///  
-        _on_updated( updated_items, prev_items ) 
+        _on_updated( changes ) 
         {       
-            document.getElementById("console").innerHTML += "<p>_on_updated</p>";
-            for( let path in updated_items )
-                document.getElementById("console").innerHTML += `<p>&nbsp;&nbsp;&nbsp;&nbsp;path='${path}', updated_value='${String( updated_items[path] )}', prev_value='${String( prev_items[path] )}'</p>`
+            document.getElementById("console").innerHTML += "<p>_on_updated</p>";            
+            document.getElementById("console").innerHTML += `<p>&nbsp;&nbsp;&nbsp;&nbsp;changes='${ JSON.stringify(changes) }</p>`
         }
     }
     
@@ -98,6 +102,9 @@
         document.getElementById("console").innerHTML += `<p>/='${countries_databse.get("/")}'</p>`
         
         countries_databse.update({"countries": {"uk": { "name": "gambia" }}});
+        let countries_db_html_app = new CountriesDatabaseHtmlApp();
+        countries_db_html_app._dom_loaded = true;
+        countries_db_html_app.update( {"countries": countries_databse.get("countries") } );
         
     });
     </script>
@@ -114,29 +121,9 @@
             super();
         }
     }
-            let countries_db_html_app = new CountriesDatabaseHtmlApp();
-        countries_db_html_app.update({
-            "countries":
-            {
-                "de":
-                {
-                    "name": "Federal Republic of Germany",
-                    "population": 82,
-                },
-                "usa":
-                {
-                    "name": "United States of America",
-                    "population": 350,
-                },
-                "uk":
-                {
-                    "name": "United Kingdom",
-                    "population": 76,
-                }
-            }
-        });
+            
     </script>
-    <table style="width: 100%;">
+    <table style="width: 100%; text-align: center;" border="1">
         <thead>
             <tr>
                 <th>id</th>

@@ -231,10 +231,10 @@
                             </tr>
                         </tbody>
                     </table>
+                    <p data-bind-display="curr_dicom_dataset_changed">
+                        <a href="#" class="button">Apply changes & download</a> 
+                    </p>
                 </div>
-                <p data-bind-display="curr_dicom_dataset">
-                    <a href="#" class="button">Apply changes & download</a> 
-                </p>
             </div>           
         </div> 
 
@@ -259,17 +259,15 @@
             super();
         }
         ///
-        /// @param object updated_items all changes as path -> value items
-        /// @param object prev_values
+        /// @param object changes
         /// @return void
         ///  
-        _on_updated( updated_items, prev_items ) 
+        _on_updated( changes ) 
         {                   
             // PROPAGATE CHANGES               
-            if( "files" in updated_items )
+            if( "files" in changes )
             {
-                let files = updated_items["files"];
-                
+                let files = changes["files"];                
                 if( files instanceof FileList )
                 {
                     this._load_dicom_files( files );
@@ -279,23 +277,17 @@
                     this.update( { "dicom_files": null,
                         "dicom_datasets": null,
                         "loading": false } );       
-                }
-                
+                }                
             }
-            else if( "dicom_files" in updated_items || "dicom_datasets" in updated_items )
-            {
+            else if( "dicom_files" in changes || "dicom_datasets" in changes )
                 this.update({ "selected_dicom_files": null})
-            }
-            else if( "selected_dicom_files" in updated_items )
-            {    
+            else if( "selected_dicom_files" in changes )
                 this._filter_curr_dicom_dataset();  
-            }
-            else if( "tag_filter" in updated_items )
-            {
+            else if( "tag_filter" in changes )
                 this._filter_curr_dicom_dataset();
-            }
+
             // update dom here
-            super._on_updated( updated_items, prev_items );
+            super._on_updated( changes );
         }
         ///
         /// @return void
@@ -340,7 +332,7 @@
                     break;
                 }
             }
-            this.update( { "curr_dicom_dataset": only_null_values ? null : curr_dicom_dataset } );
+            this.update( { "curr_dicom_dataset": only_null_values ? null : curr_dicom_dataset, "curr_dicom_dataset_changed": false } );
         }
         ///
         /// @param object updated_items all changes as path -> value items

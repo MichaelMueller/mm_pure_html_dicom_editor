@@ -6,9 +6,9 @@ class App
     ///
     /// @return this
     ///  
-    constructor()
+    constructor(delimiter=null)
     {
-        this._delimiter = "/";
+        this._delimiter = typeof delimiter == "string" ? delimiter : "/";
         ///
         /// @var object
         ///
@@ -33,25 +33,26 @@ class App
     /// @param string path
     /// @return mixed|null
     ///  
-    get( path )
+    get( path, default_value=null )
     {
-        if( path == null )
+        let delimiter = this._delimiter;
+        if( path == null || path == delimiter )
             path = "";
 
-        let keys = path == "" ? [] : String(path).split(this._delimiter);
+        let keys = path == "" ? [] : String(path).split(delimiter);
 
         // recursively get the value
         let curr_object = this._data;
-        while( keys.length > 0 )
+        for(let i=0; i<keys.length; ++i)
         {
-            let key = keys.shift();
+            let key = keys[i];
             if( typeof curr_object != "object" || !( key in curr_object ) )
-                return null;
+                return default_value;
             curr_object = curr_object[key];
         }
 
         // filter the object if necessary
-        return this._filter_on_get( path, App.deep_copy( curr_object ) );
+        return this._filter_on_get( keys, this._deep_copy( curr_object ) );
     }
     ///        
     /// @param string path
@@ -70,10 +71,11 @@ class App
     ///  
     _set( path, value, validate=false )
     {
-        if( path == null )
+        let delimiter = this._delimiter;
+        if( path == null || path == delimiter )
             path = "";
 
-        let keys = String(path).split(this._delimiter);
+        let keys = String(path).split(delimiter);
 
         // recursively build a change object
         let changes = {};
@@ -98,110 +100,105 @@ class App
     ///  
     _update( changes, validate=false ) 
     {
-        let updated_items = {};
-        let prev_items = {};
-        let parent_path = null;
-
-        this._recursive_update( changes, validate, this._data, updated_items, prev_items, parent_path );        
-        this._on_updated( updated_items, prev_items );
-    }
-    ///        
-    /// @param object changes
-    /// @param bool validate
-    /// @param object target
-    /// @param object updated_items
-    /// @param object prev_items
-    /// @param string|null parent_path
-    /// @return this
-    ///  
-    _recursive_update( changes, validate, target, updated_items, prev_items, parent_path ) 
-    {
         // first level checks
         if( changes == null || typeof changes != "object" )
         {
-            console.error("changes must be a map-like object or array, not "+String(changes));
-            return false;
+            console.error("changes must be an object or array, not "+String(changes));
+            return this;
         }
-        // prev_values will have the same structure as the changes
-        let keys = Object.keys(changes);
-        let changed = false;
-        for( let key of keys )
+        // filter
+        this._filter_changes( changes );
+        // validate
+        if( validate && this._validate(changes) == false )
+            return this;
+        // apply
+        this._recursive_update( changes, this._data ); 
+        this._on_updated( changes );
+    }
+    ///        
+    /// @param object changes
+    /// @param object target
+    /// @return void
+    ///  
+    _recursive_update( changes, target ) 
+    {
+        // these keys will be removed if they are null
+        let keys_to_remove = [];
+
+        // iterate
+        for( let key in changes )
         {
-            let curr_path = ( parent_path == null ? "" : parent_path + this._delimiter ) + String(key);
             // use filter if needed
-            let updated_value = this._filter_on_update( curr_path, changes[key], true );
-            let curr_value = key in target ? target[key] : null;
-            if( validate && this._is_valid(curr_path, updated_value, curr_value) == false )
-                continue;
+            let updated_value = changes[key];
             
-            // validation passed, now apply the value
-            updated_items[curr_path] = updated_value;
-            prev_items[curr_path] = curr_value;   
+            // recursive case if we got an array or object (map)
             if( updated_value != null && ["Array", "Object"].includes(updated_value.constructor.name) )
             {                
                 let child_changes = updated_value;
-                if( curr_value == null || curr_value.constructor.name != child_changes.constructor.name )                
+                // change the value in the target to the same data structure (also a change)
+                if( !( key in target && target[key].constructor.name == child_changes.constructor.name ) )               
                     target[key] = child_changes.constructor.name == "Array" ? [] : {};
-                let child_target = target[key];
-
-                let child_changed = this._recursive_update( child_changes, validate, child_target, updated_items, prev_items, curr_path );
-                if( child_changed == false )
-                {
-                    delete updated_items[curr_path];
-                    delete prev_items[curr_path];
-                }
-                changed = changed || child_changed;
+                // dive deeper
+                let child_target = target[key];    
+                this._recursive_update( child_changes, child_target );
             }
             else            
             {
                 target[key] = updated_value;
-                if( target[key] == null )
-                {
-                    if( Array.isArray( target ) )
-                        target.remove( key );
-                    else
-                        delete target[key];
-                }
-                changed = true;
-            } 
+                // if we got a new value, cache this. We need to remove the nulls once we have
+                // iterated the changes. removing this nulls right now would invalidate the changes!!
+                if( updated_value == null )
+                    keys_to_remove.push( key );
+            }             
         }
-        return changed;
+        // remove nulls from the target
+        for( let key of keys_to_remove )
+        {
+            if( Array.isArray( target ) )
+                target.remove( key );
+            else
+                delete target[key];
+        }
     }
     ///
-    /// @param string path
+    /// @param object changes
     /// @param mixed value
     /// @return void
     ///  
-    _filter_on_update( path, value ) { return value; }
+    _filter_changes( changes ) {}
     ///
     /// @param string path
     /// @param mixed value
     /// @return void
     ///  
-    _filter_on_get( path, value ) { return value; }
+    _filter_on_get( keys, value ) { return value; }
     ///
     /// @param object changes
-    /// @param object curr_value
     /// @return bool
     ///  
-    _is_valid( path, updated_value, curr_value ) { return true; }
+    _validate( changes ) { return true; }
     ///
-    /// @param object updated_items all changes as path -> value items
-    /// @param object prev_values
+    /// @param object changes
     /// @return void
     ///  
-    _on_updated( updated_items, prev_items ) {}
+    _on_updated( changes ) {}
+    ///
+    /// @param array keys
+    /// @param array target_keys
+    /// @return bool
+    ///  
+    _keys_equal( keys, target_keys) { return keys.length === target_keys.length && keys.every(function(value, index) { return value === target_keys[index]}) }
     ///
     /// @param object object
     /// @return object
     ///  
-    static deep_copy( obj )
+    _deep_copy( obj )
     {        
         if( obj != null && typeof obj == "object" )
         {
             let copy = Array.isArray(obj) ? [] : {};
             for( let key in obj )
-                copy[key] = App.deep_copy( obj[key] );
+                copy[key] = this._deep_copy( obj[key] );
             return copy;                        
         }
         else
@@ -216,9 +213,9 @@ class HtmlApp extends App
     ///
     /// @return this
     ///  
-    constructor()
+    constructor(delimiter=null)
     {
-        super();
+        super(delimiter);
         this._dom_loaded = false;
         this._cached_updates = [];
         this._cached_validation_flags = [];
@@ -260,7 +257,6 @@ class HtmlApp extends App
                     this.set( path, value );
                     this._active_element = null;
                 }
-
             }.bind(this));
 
             // apply cache
@@ -280,7 +276,7 @@ class HtmlApp extends App
     {
         if(this._dom_loaded == false)
         {
-            this._cached_updates.push( App.deep_copy( changes ) );
+            this._cached_updates.push( this._deep_copy( changes ) );
             this._cached_validation_flags.push( validate );
             return this;
         }
@@ -292,14 +288,22 @@ class HtmlApp extends App
     /// @param object prev_values
     /// @return void
     ///  
-    _on_updated( updated_items, prev_items ) 
+    _on_updated( changes ) 
     {
-        let updated_paths = Object.keys(updated_items);
+        this._update_dom( changes, null );
+    }
+    ///
+    /// @param object changes
+    /// @param string parent_path
+    /// @return void
+    ///  
+    _update_dom( changes, parent_path )
+    {        
         //updated_paths.reverse();
-        for( let path of updated_paths )
+        for( let key in changes )
         {
-            let value = updated_items[path];
-            //let prev_value = updated_items[path];
+            let path = (parent_path == null ? "" : parent_path + this._delimiter) + String(key);
+            let value = changes[key];
             // get the value
             let bool_value = value == null ? false : Boolean(value);
             let str_value = value == null ? "" : String(value);
@@ -337,7 +341,8 @@ class HtmlApp extends App
                         item_elem_html = item_elem_html.replaceAll(' style=""', "");
                         elem.innerHTML += item_elem_html;
                     }
-                }  
+                }
+                this._update_dom( value, path );
             }
 
             // bind value to form elements
