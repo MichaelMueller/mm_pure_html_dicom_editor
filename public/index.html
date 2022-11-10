@@ -285,6 +285,10 @@
                 this._filter_curr_dicom_dataset();  
             else if( "tag_filter" in changes )
                 this._filter_curr_dicom_dataset();
+            else if( "curr_dicom_dataset" in changes && this._active_element != null )
+            {
+                this._set("curr_dicom_dataset_changed", true);
+            }
 
             // update dom here
             super._on_updated( changes );

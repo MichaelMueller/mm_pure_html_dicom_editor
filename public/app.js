@@ -315,32 +315,19 @@ class HtmlApp extends App
             let elements = null;
             // bind whole object to elements
             if( value != null && typeof value == "object" )
-            {                  
-                let child_object = value;      
+            {                
+                // TODO really only apply changes  
+                let child_object = this.get(path);      
                 elements = document.querySelectorAll(`[data-bind-object="${path}"]`);
                 for( let i=0; i < elements.length; ++ i)
                 {                    
                     let elem = elements.item(i);
-                    let first_child = null;
-                    for( let j=0; j < elem.children.length; ++j )
-                    {
-                        let child_elem = elem.children[j];
-                        if( j == 0 )
-                        {
-                            first_child = child_elem;
-                            first_child.style.display = "none";
-                        }
-                        else
-                        {
-                            let key = "key" in child_elem.dataset ? child_elem.dataset.key : null;
-                        }
-                    }
-
                     if( elem.children.length == 0 )
                     {
                         console.error("A template element at index 0 is needed for element with path "+`[data-bind-object="${path}"]`);
                         continue;
                     }
+                    let first_child = elem.children[0];
                     first_child.style.display = "none";
                     let first_child_html = new XMLSerializer().serializeToString(first_child);
                     first_child_html = first_child_html.replaceAll(' xmlns="http://www.w3.org/1999/xhtml"', '');
@@ -356,7 +343,7 @@ class HtmlApp extends App
                         elem.innerHTML += item_elem_html;
                     }
                 }
-                this._update_dom( value, path );
+                this._update_dom( child_object, path );
             }
 
             // bind value to form elements
