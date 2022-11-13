@@ -232,7 +232,7 @@
                         </tbody>
                     </table>
                     <p data-bind-display="curr_dicom_dataset_changed">
-                        <a href="#" class="button">Apply changes & download</a> 
+                        <a href="#" class="button" data-bind-action="apply_changes">Apply changes & download</a> 
                     </p>
                 </div>
             </div>           
@@ -242,6 +242,7 @@
 
     <!-- javascript -->
     <script src="https://cdn.jsdelivr.net/npm/dcmjs@0.28.0/build/dcmjs.min.js"></script>
+    <script src="jszip.min.js"></script>
     <script src="app.js"></script>
     <script>
     ///
@@ -289,9 +290,39 @@
             {
                 this._set("curr_dicom_dataset_changed", true);
             }
+            else if( "apply_changes" in changes && changes["apply_changes"] == true )
+            {
+                this._apply_changes();
+            }
 
             // update dom here
             super._on_updated( changes );
+        }
+        ///
+        /// @return void
+        ///  
+        _apply_changes()
+        {        
+            this.set("loading", true);
+            let selected_dicom_files = this.get("selected_dicom_files");
+            var zip = new JSZip();
+            for( let selected_dcm_file_idx of selected_dicom_files )
+            {
+                let rel_file_name = String( this._data.files[ selected_dcm_file_idx ].webkitRelativePath ); 
+                let file_dicom_dataset = this._data.dicom_datasets[ selected_dcm_file_idx ];
+                //var data_url = URL.createObjectURL(file_dicom_dataset);
+                let bin_data = dcmjs.data.DicomMetaDictionary.denaturalizeDataset(file_dicom_dataset);
+                //DicomDict.dict = dcmjs.data.DicomMetaDictionary.denaturalizeDataset(dataset);
+                let new_file_WriterBuffer = bin_data.write();
+                zip.file(rel_file_name,  new Buffer(new_file_WriterBuffer));
+            }
+            zip.generateAsync({type:"blob"})
+            .then(function(content) {
+                // see FileSaver.js
+                saveAs(content, "dicom.zip");
+                
+                this.set("loading", false);
+            });
         }
         ///
         /// @return void

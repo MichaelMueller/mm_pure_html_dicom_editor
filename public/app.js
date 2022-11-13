@@ -259,6 +259,19 @@ class HtmlApp extends App
                 }
             }.bind(this));
 
+            document.addEventListener("click", function(event) 
+            { 
+                if( "bindAction" in event.target.dataset )
+                {
+                    event.preventDefault();
+                    let elem = event.target;
+                    let action_path = elem.dataset.bindAction;
+                    this._active_element = elem;
+                    this.set( action_path, true );
+                    this._active_element = null;
+                }
+            }.bind(this));
+
             // apply cache
             for( let i=0; i<this._cached_updates.length; ++i )
                 this._update( this._cached_updates[i], this._cached_validation_flags[i] );
